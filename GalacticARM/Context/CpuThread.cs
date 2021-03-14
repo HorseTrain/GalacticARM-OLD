@@ -29,7 +29,7 @@ namespace GalacticARM.Context
         public ulong GetMisc(MiscRegister reg) => NativeContext.RegisterBuffer[InstructionEmitContext.MiscStart + (ulong)reg];
         public void SetMisc(MiscRegister reg, ulong value) => NativeContext.RegisterBuffer[InstructionEmitContext.MiscStart + (ulong)reg] = value;
 
-        public static bool UseX86 = false;
+        public static bool UseX86 = true;
 
         public Vector128<float> GetQ(int Index)
         {
@@ -66,6 +66,8 @@ namespace GalacticARM.Context
             SetMisc(MiscRegister.ID,ID);
         }
 
+        public ulong Entry;
+
         public unsafe void Execute(ulong Entry, bool Once = false)
         {
             Console.WriteLine($"Started Thread {GetMisc(MiscRegister.ID)}");
@@ -84,11 +86,14 @@ namespace GalacticARM.Context
                     {
                         NativeFunction block = X86Translator.GetOrTranslate(Entry);
 
-                        Console.WriteLine(X86Decoder.DecodeBlock(block.Buffer));
+                        this.Entry = Entry;
 
                         Entry = block.Execute(nc);
 
-                        Console.WriteLine(Entry);
+                        //Console.WriteLine(Entry);
+
+                        if (!DebugMode)
+                            step += block.ArmSize;
 
                         if (Once || GetMisc(MiscRegister.IsExecuting) == 0)
                         {
@@ -101,6 +106,13 @@ namespace GalacticARM.Context
                     while (true)
                     {
                         InstructionEmitContext block = InterpreterTranslator.GetOrTranslate(Entry);
+
+                        //Console.WriteLine(block.Block);
+
+                        if (!DebugMode)
+                            step += block.ArmSize;
+
+                        this.Entry = Entry;
 
                         Entry = block.MsilFunc(nc);
 
@@ -122,6 +134,10 @@ namespace GalacticARM.Context
             //Console.WriteLine($"Hello World");
 
             svc((int)Arg);
+
+            //Console.WriteLine(Arg);
+
+            //Console.WriteLine($"Hello World");
         }
 
         //Debug Stuff
@@ -139,7 +155,9 @@ namespace GalacticARM.Context
             //519455596
             //519455596
 
-            
+            //Console.WriteLine(Arg);
+
+            /*
             if (step >= DebugStart && GetMisc(MiscRegister.IsExecuting) == 1)
             {
                 if (writer == null)
@@ -147,7 +165,7 @@ namespace GalacticARM.Context
                     writer = new StreamWriter(@"D:\Debug\GSteps.txt");
                 }
 
-                writer.WriteLine($"step: {step}");
+                writer.WriteLine($"step: {step} {MemoryManager.GetOpHex(Arg)}");
 
                 for (int i = 0; i < 32; i++)
                 {
@@ -161,9 +179,9 @@ namespace GalacticARM.Context
 
                 SetMisc(MiscRegister.IsExecuting, 0);
             }
+            */
             
-
-            step++;
+            //step++;
         }
     }
 }

@@ -1205,11 +1205,6 @@ namespace GalacticARM.Decoding
             {
                 AOpCode opCode = DecodeOpCode(Address);
 
-                if (Base == 0x00000000080007ec)
-                {
-                    //Console.WriteLine(MemoryManager.GetOpHex(Address));
-                }
-
                 Out.AddOpCode(opCode);
 
                 if (IsBranch(opCode.RawOpCode))

@@ -1,4 +1,5 @@
-﻿using GalacticARM.CodeGen.Translation;
+﻿using GalacticARM.CodeGen.AEmit;
+using GalacticARM.CodeGen.Translation;
 using GalacticARM.Context;
 using System;
 using System.Collections.Generic;
@@ -26,16 +27,22 @@ namespace GalacticARM.CodeGen.Assembler.X86
                 return Out;
             }
 
-            X86Assembler assembler = new X86Assembler();
+            X86Compiler assembler = new X86Compiler();
 
-            assembler.Compile(InterpreterTranslator.GetIRBlock(Address).Block);
+            InstructionEmitContext il = InterpreterTranslator.GetIRBlock(Address);
+
+            assembler.Compile(il.Block);
 
             Out = assembler.GetNativeFunction();
+
+            Out.ArmSize = il.ArmSize;
 
             lock (Functions)
             {
                 Functions.Add(Address, Out);
             }
+
+            //Console.WriteLine(X86Decoder.DecodeBlock(Out.Buffer));
 
             return Out;
         }

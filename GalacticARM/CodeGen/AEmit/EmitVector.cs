@@ -12,7 +12,7 @@ namespace GalacticARM.CodeGen.AEmit
 {
     public static class EmitVector
     {
-        public static Operand GetVectorAddress(InstructionEmitContext context, int index) => context.Add(context.GetContextPointer(), context.Add(context.Const(InstructionEmitContext.GuestRegisterCount * 8),context.Const(index * 16)));
+        public static Operand GetVectorAddress(InstructionEmitContext context, int index) => context.Add(context.GetContextPointer(), context.Add(context.Const(InstructionEmitContext.GuestRegisterCount * 8,true),context.Const(index * 16)));
 
         public static void InsertIntToVector(InstructionEmitContext context, int reg, Operand data, int size, int index = 0)
         {

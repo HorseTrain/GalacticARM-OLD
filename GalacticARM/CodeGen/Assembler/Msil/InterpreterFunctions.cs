@@ -59,6 +59,7 @@ namespace GalacticARM.CodeGen.Assembler.Msil
             GenerateSubtract,
             GenerateWriteRegister,
             GenerateXor,
+            GenerateNop
         };
 
         //Intrinsics
@@ -108,7 +109,9 @@ namespace GalacticARM.CodeGen.Assembler.Msil
                 if (Signed)
                     generator.il.Emit(OpCodes.Conv_I4);
                 else
-                    generator.il.Emit(OpCodes.Conv_U4); 
+                    generator.il.Emit(OpCodes.Conv_U4);
+
+                generator.il.Emit(OpCodes.Conv_U4);
             }
             else
             {
@@ -118,7 +121,9 @@ namespace GalacticARM.CodeGen.Assembler.Msil
                     generator.il.Emit(OpCodes.Conv_U8);
             }
 
-            generator.StoreReg(DesReg);
+            generator.il.Emit(OpCodes.Conv_U8);
+
+            generator.StoreData(0);
         }
 
         public static void GenerateF_IntConvertToFloat(Operation operation, Generator generator)
@@ -128,10 +133,24 @@ namespace GalacticARM.CodeGen.Assembler.Msil
             int SourceSize = (int)operation.GetImm(2);
             bool Signed = operation.GetImm(3) == 1;
 
-            generator.LoadReg(DesReg,SourceSize);
+            generator.LoadData(0);
 
-            if (!Signed)
+            if (Signed)
+            {
+                if (SourceSize == 0)
+                    generator.il.Emit(OpCodes.Conv_I4);
+                else
+                    generator.il.Emit(OpCodes.Conv_I8);
+            }
+            else
+            {
+                if (SourceSize == 0)
+                    generator.il.Emit(OpCodes.Conv_U4);
+                else
+                    generator.il.Emit(OpCodes.Conv_U8);
+
                 generator.il.Emit(OpCodes.Conv_R_Un);
+            }
 
             if (DesSize == 0)
             {
@@ -204,31 +223,31 @@ namespace GalacticARM.CodeGen.Assembler.Msil
         //Normal
         public static void GenerateAdd(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Add);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateAnd(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.And);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateCall(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(1);
 
             for (int i = 0; i < (int)operation.GetImm(0); i++)
             {
-                generator.LoadReg(operation.GetReg(2 + i));
+                generator.LoadData(2 + i);
             }
 
             switch (operation.GetImm(0))
@@ -248,86 +267,86 @@ namespace GalacticARM.CodeGen.Assembler.Msil
 
         public static void GenerateCompareEqual(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Ceq);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateCompareGreaterThan(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Cgt);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateCompareGreaterThanUnsigned(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Cgt_Un);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateCompareLessThan(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Clt);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateCompareLessThanUnsigned(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Clt_Un);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateCopy(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(1);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateDivide(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Div);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateDivide_Un(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Div_Un);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateGetContextPointer(Operation operation, Generator generator)
         {
             generator.il.Emit(OpCodes.Ldarg_0);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateJump(Operation operation, Generator generator)
@@ -337,13 +356,14 @@ namespace GalacticARM.CodeGen.Assembler.Msil
 
         public static void GenerateJumpIf(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
+            generator.LoadData(0);
 
             generator.il.Emit(OpCodes.Brtrue, generator.Lables[(int)operation.Arguments[1].label.Address]);
         }
 
         public static void GenerateLoadImmediate(Operation operation, Generator generator)
         {
+            /*
             if (operation.Size == OperationSize.Int32)
             {
                 generator.il.Emit(OpCodes.Ldc_I4, (int)(uint)operation.GetImm(1));
@@ -352,167 +372,170 @@ namespace GalacticARM.CodeGen.Assembler.Msil
             {
                 generator.il.Emit(OpCodes.Ldc_I8, (long)operation.GetImm(1));
             }
+            */
+
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Conv_U8);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateLoadMem(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Ldind_I8);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateMod(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Rem);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateMultiply(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Mul);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateNot(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
+            generator.LoadData(0);
 
             generator.il.Emit(OpCodes.Not);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateOr(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Or);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateReturn(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
+            generator.LoadData(0);
 
             generator.il.Emit(OpCodes.Stloc,generator.ReturnLocal);
         }
 
         public static void GenerateShiftLeft(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Shl);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateShiftRight(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Shr_Un);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateShiftRightSigned(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Shr);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateSignExtend16(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
+            generator.LoadData(0);
 
             generator.il.Emit(OpCodes.Conv_I2);
             generator.il.Emit(OpCodes.Conv_I8);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateSignExtend32(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
+            generator.LoadData(0);
 
             generator.il.Emit(OpCodes.Conv_I4);
             generator.il.Emit(OpCodes.Conv_I8);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateSignExtend8(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
+            generator.LoadData(0);
 
             generator.il.Emit(OpCodes.Conv_I1);
             generator.il.Emit(OpCodes.Conv_I8);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateStore16(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Stind_I2);
         }
 
         public static void GenerateStore32(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Stind_I4);
         }
 
         public static void GenerateStore64(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Stind_I8);
         }
 
         public static void GenerateStore8(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Stind_I1);
         }
 
         public static void GenerateSubtract(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Sub);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
         }
 
         public static void GenerateWriteRegister(Operation operation, Generator generator)
@@ -522,12 +545,17 @@ namespace GalacticARM.CodeGen.Assembler.Msil
 
         public static void GenerateXor(Operation operation, Generator generator)
         {
-            generator.LoadReg(operation.GetReg(0));
-            generator.LoadReg(operation.GetReg(1));
+            generator.LoadData(0);
+            generator.LoadData(1);
 
             generator.il.Emit(OpCodes.Xor);
 
-            generator.StoreReg(operation.GetReg(0));
+            generator.StoreData(0);
+        }
+
+        public static void GenerateNop(Operation operation, Generator generator)
+        {
+            generator.il.Emit(OpCodes.Nop);
         }
     }
 }

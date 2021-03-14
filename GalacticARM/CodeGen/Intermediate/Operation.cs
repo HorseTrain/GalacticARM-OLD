@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GalacticARM.CodeGen.Intermediate
 {
-    public class Operation
+    public class Operation 
     {
         public ulong Address        { get; set; }
         public ILInstruction Name   { get; set; }
@@ -44,6 +44,9 @@ namespace GalacticARM.CodeGen.Intermediate
         }
 
         public int GetReg(int i) => Arguments[i].Reg;
+
         public ulong GetImm(int i) => Arguments[i].Imm;
+
+        public OperandType GetType(int i) => Arguments[i].Type;
     }
 }

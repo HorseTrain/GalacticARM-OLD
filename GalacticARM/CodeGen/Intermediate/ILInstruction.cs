@@ -51,5 +51,7 @@ namespace GalacticARM.CodeGen.Intermediate
         Subtract,
         WriteRegister,
         Xor,
+
+        Nop
     }
 }

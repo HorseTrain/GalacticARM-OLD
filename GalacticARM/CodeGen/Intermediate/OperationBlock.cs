@@ -66,19 +66,27 @@ namespace GalacticARM.CodeGen.Intermediate
             }
         }
 
-        public void AssertIsRegister(Operand test) => Assert(test.Type == OperandType.Register);
+        public void AssertIsRegister(Operand test)
+        {
+            Assert(test.Type == OperandType.Register);
+        }
 
         public Operand Const(ulong Imm)
         {
             Operand loc = Local();
 
-            Add(new Operation(ILInstruction.LoadImmediate,loc,Operand.Const(Imm)));
+            Add(new Operation(ILInstruction.LoadImmediate, loc, Operand.Const(Imm)));
 
-            return loc;//Operand.Const(Imm);
+            return loc;
         }
 
-        public void Add(Operation o)
+        public void Add(Operation o, bool CheckIsReg = true)
         {
+            if (CheckIsReg)
+            {
+                AssertIsRegister(o.Arguments[0]);
+            }
+
             o.Size = Size;
             o.Address = (ulong)Operations.Count;
 
@@ -125,12 +133,12 @@ namespace GalacticARM.CodeGen.Intermediate
 
         public void Jump(Label label)
         {
-            Add(new Operation(ILInstruction.Jump,Operand.Label(label)));
+            Add(new Operation(ILInstruction.Jump,Operand.Label(label)),false);
         }
 
         public void JumpIf(Label label,Operand arg)
         {
-            Add(new Operation(ILInstruction.JumpIf,arg, Operand.Label(label)));
+            Add(new Operation(ILInstruction.JumpIf,arg, Operand.Label(label)),false);
         }
 
         public bool Storeable()

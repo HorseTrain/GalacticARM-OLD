@@ -11,6 +11,7 @@ namespace GalacticARM.Context
 
     public unsafe class NativeFunction
     {
+        public ulong ArmSize        { get; set; }
         public ulong GuestAddress   { get; set; }
         public byte[] Buffer        { get; set; }
         public void* Entry          { get; set; }

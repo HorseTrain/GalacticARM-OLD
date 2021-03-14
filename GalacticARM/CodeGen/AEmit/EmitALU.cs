@@ -3,6 +3,7 @@ using GalacticARM.CodeGen.Intermediate;
 using GalacticARM.Context;
 using GalacticARM.Decoding;
 using GalacticARM.Decoding.Abstractions;
+using GalacticARM.Memory;
 using System;
 using System.Collections.Generic;
 using UltimateOrb;

@@ -20,17 +20,22 @@ namespace GalacticARM.CodeGen.Assembler.Msil
 
         public List<System.Reflection.Emit.Label> Lables { get; set; }
 
-        public OperationSize CurrentSize                { get; set; }
+        public OperationSize CurrentSize { get; set; }
 
-        public int ReturnLocal                          { get; set; }
-        public int PointerStore                         { get; set; }
+        public int ReturnLocal { get; set; }
+        public int PointerStore { get; set; }
 
-        public int FloatStore                           { get; set; }
-        public int DoubleStore                          { get; set; }
+        public int FloatStore               { get; set; }
+        public int DoubleStore              { get; set; }
+
+        public Operation CurrentOperation   { get; set; }
+        public OperationBlock CurrentBlock  { get; set; }
+
+        public Dictionary<int,int> LocalMap { get; set; }
 
         public unsafe Generator(string name)
         {
-            method = new DynamicMethod(name,typeof(ulong),new Type[] { typeof(ContextBlock*) });
+            method = new DynamicMethod(name, typeof(ulong), new Type[] { typeof(ContextBlock*) });
 
             il = method.GetILGenerator();
 
@@ -38,54 +43,39 @@ namespace GalacticARM.CodeGen.Assembler.Msil
             PointerStore = il.DeclareLocal(typeof(ulong)).LocalIndex;
 
             FloatStore = il.DeclareLocal(typeof(float)).LocalIndex;
-            DoubleStore = il.DeclareLocal(typeof(float)).LocalIndex;
+            DoubleStore = il.DeclareLocal(typeof(double)).LocalIndex;
 
             Lables = new List<System.Reflection.Emit.Label>();
         }
 
         public void LoadFloat(int index, int size)
         {
-            LoadRegisterPointer(index);
+            LoadRegRaw(index);
 
             if (size == 0)
-            {
-                il.Emit(OpCodes.Ldind_R4);
+            {          
+                il.Emit(OpCodes.Call,typeof(Generator).GetMethod(nameof(ToFloat)));
             }
             else
             {
-                il.Emit(OpCodes.Ldind_R8);
+                il.Emit(OpCodes.Call, typeof(Generator).GetMethod(nameof(ToDouble)));
             }
         }
 
         public void StoreFloat(int index, int size)
-        {         
+        {
             if (size == 0)
             {
-                il.Emit(OpCodes.Stloc,FloatStore);
+                il.Emit(OpCodes.Call,typeof(Generator).GetMethod(nameof(ToUint)));
+
+                il.Emit(OpCodes.Conv_U4);
             }
             else
             {
-                il.Emit(OpCodes.Stloc, DoubleStore);
+                il.Emit(OpCodes.Call, typeof(Generator).GetMethod(nameof(ToUlong)));
             }
 
-            LoadRegisterPointer(index);
-
-            if (size == 0)
-            {
-                il.Emit(OpCodes.Ldloc, FloatStore);
-                il.Emit(OpCodes.Stind_R4);
-
-                /*
-                LoadRegisterPointer(index);
-                il.Emit(OpCodes.Ldc_I8,0L);
-                il.Emit(OpCodes.Stind_I8);
-                */
-            }
-            else
-            {
-                il.Emit(OpCodes.Ldloc, DoubleStore);
-                il.Emit(OpCodes.Stind_R8);
-            }
+            StoreDataRaw(index);
         }
 
         public void LoadRegisterPointer(int index)
@@ -96,7 +86,7 @@ namespace GalacticARM.CodeGen.Assembler.Msil
             il.Emit(OpCodes.Add);
         }
 
-        public void LoadReg(int index)
+        public void LoadRegFromMem(int index)
         {
             LoadRegisterPointer(index);
 
@@ -108,21 +98,37 @@ namespace GalacticARM.CodeGen.Assembler.Msil
                 il.Emit(OpCodes.Conv_U4);
         }
 
-        public void LoadReg(int index, int size)
+        public void LoadData(int index)
         {
-            LoadReg(index);
+            Operand op = CurrentOperation.Arguments[index];
 
-            if (size == 0)
+            if (op.Type == Intermediate.OperandType.Register)
             {
-                il.Emit(OpCodes.Conv_U4);
+                LoadRegRaw(op.Reg);
             }
             else
             {
-                il.Emit(OpCodes.Conv_I8);
+                if (CurrentOperation.Size == OperationSize.Int32)
+                {
+                    il.Emit(OpCodes.Ldc_I4, (int)(uint)op.Imm);
+                    il.Emit(OpCodes.Conv_U4);
+                }
+                else
+                {
+                    il.Emit(OpCodes.Ldc_I8, (long)op.Imm);
+                    il.Emit(OpCodes.Conv_U8);
+                }
             }
         }
 
-        public void StoreReg(int index)
+        public void StoreData(int index)
+        {
+            Operand op = CurrentOperation.Arguments[index];
+
+            StoreDataRaw(op.Reg);
+        }
+
+        public void StoreRegToMem(int index)
         {
             il.Emit(OpCodes.Conv_U8);
             il.Emit(OpCodes.Stloc, PointerStore);
@@ -134,9 +140,21 @@ namespace GalacticARM.CodeGen.Assembler.Msil
             il.Emit(OpCodes.Stind_I8);
         }
 
+        public void StoreDataRaw(int index)
+        {
+            StoreRegToMem(index);
+        }
+
+        public void LoadRegRaw(int index)
+        {
+            LoadRegFromMem(index);
+        }
+
         public static CompiledFunction CompileIL(string Name,OperationBlock block)
         {
             Generator generator = new Generator(Name);
+
+            generator.CurrentBlock = block;
 
             for (int i = 0; i < block.Operations.Count; i++)
             {
@@ -149,23 +167,35 @@ namespace GalacticARM.CodeGen.Assembler.Msil
 
                 generator.CurrentSize = block.Operations[i].Size;
 
+                generator.CurrentOperation = block.Operations[i];
+
                 InterpreterFunctions.Generation[(int)block.Operations[i].Name](block.Operations[i],generator);
             }
-
-            /*
-            generator.il.Emit(OpCodes.Ldc_I4,100);
-
-            generator.StoreReg(0);
-
-            generator.LoadReg(0);
-
-            generator.StoreReg(10);
-            */
 
             generator.il.Emit(OpCodes.Ldloc,generator.ReturnLocal);
             generator.il.Emit(OpCodes.Ret);
 
             return (CompiledFunction)generator.method.CreateDelegate(typeof(CompiledFunction));
+        }
+
+        public static unsafe float ToFloat(uint i)
+        {
+            return *(float*)&i;
+        }
+
+        public static unsafe double ToDouble(ulong i)
+        {
+            return *(double*)&i;
+        }
+
+        public static unsafe uint ToUint(float i)
+        {
+            return *(uint*)&i;
+        }
+
+        public static unsafe ulong ToUlong(double i)
+        {
+            return *(ulong*)&i;
         }
     }
 }

@@ -63,7 +63,7 @@ namespace GalacticARM.CodeGen.AEmit
                 return loc; 
             }
 
-            return Const(0);
+            return Const(0,true);
         }
 
         public void SetRegister(int reg, Operand d, bool IsSP = false)
@@ -90,7 +90,7 @@ namespace GalacticARM.CodeGen.AEmit
 
         public void ReturnWithPC(Operand d)
         {
-            Block.Add(new Operation(ILInstruction.Copy,ReturnArgument,d));
+            Block.Add(new Operation(ILInstruction.Copy, ReturnArgument, d));
         }
 
         public Operand Add(Operand op0, Operand op1) => Block.AddOperation(ILInstruction.Add, op0, op1);
@@ -125,15 +125,15 @@ namespace GalacticARM.CodeGen.AEmit
         public Operand Xor(Operand op0, Operand op1) => Block.AddOperation(ILInstruction.Xor, op0, op1);
 
         public Operand Register(int reg) => Block.Register(reg);
-        public Operand Const(ulong imm = 0) => Block.Const(imm);
+        public Operand Const(ulong imm = 0, bool CreateLocal = false) => Block.Const(imm);
         public Operand Const(int imm = 0) => Block.Const((ulong)imm);
         public Operand Const(long imm = 0) => Block.Const((ulong)imm);
 
         public Operand CompareGreaterOrEqualUnsigned(Operand op0, Operand op1) => InvertBool(CompareLessThanUnsigned(op0, op1));
 
         public Operand CompareZero(Operand op0) => CompareEqual(op0, Const(0));
-        public Operand InvertBool(Operand op0) => And(Not(op0),Const(1));
-        public Operand RotateRight(Operand op0, Operand op1) => Or(ShiftRight(op0,op1),ShiftLeft(op0,Subtract(Const(Block.Size == OperationSize.Int32 ? 32 : 64),op1)));
+        public Operand InvertBool(Operand op0) => Xor(op0,Const(1));
+        public Operand RotateRight(Operand op0, Operand op1) => Or(ShiftRight(op0,op1),ShiftLeft(op0,Subtract(Const(Block.Size == OperationSize.Int32 ? 32 : 64,true),op1)));
         public Label CreateLabel() => Block.CreateLable();
         public void MarkLabel(Label label) => Block.MarkLabel(ref label);
         public void Jump(Label label) => Block.Jump(label);
@@ -194,7 +194,7 @@ namespace GalacticARM.CodeGen.AEmit
             //Arg 1 -> Function
             //Arg 2... -> Arguments
 
-            Block.Add(new Operation(ILInstruction.Call,Args));
+            Block.Add(new Operation(ILInstruction.Call,Args),false);
         }
 
         public unsafe Operand GetDelegate(Delegate func) => Const((ulong)DelegateCache.GetOrAdd(func));

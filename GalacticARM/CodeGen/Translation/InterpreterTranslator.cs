@@ -76,7 +76,7 @@ namespace GalacticARM.CodeGen.Translation
 
             Out = GetIRBlock(Address);
 
-            if (Optimization.UsePasses)
+            if (Optimization.UsePasses && Out.Block.Storeable())
             {
                 Out.Block = Optimization.Optimize(Out.Block);
             }
@@ -128,6 +128,8 @@ namespace GalacticARM.CodeGen.Translation
             }
 
             translator.Block.Add(new Operation(ILInstruction.Return, translator.ReturnArgument));
+
+            translator.ArmSize = (ulong)block.OpCodes.Count;
 
             return translator;
         }

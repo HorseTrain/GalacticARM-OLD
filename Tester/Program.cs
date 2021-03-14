@@ -11,6 +11,7 @@ using System.Text;
 using GalacticARM.CodeGen.Assembler.Msil;
 using GalacticARM.Decoding;
 using System.Runtime.Intrinsics;
+using GalacticARM.CodeGen;
 
 namespace Tester
 {
@@ -98,20 +99,80 @@ namespace Tester
 
     class Program
     {
-        static unsafe void Main(string[] args)
+        static void TestCall(ulong i)
         {
-            
-            
+            //Console.WriteLine("Nigga");
+        }
+
+        static unsafe void Test()
+        {
+            /*
             var values = Enum.GetValues(typeof(ILInstruction));
 
             foreach (ILInstruction instruction in values)
             {
                 //Console.WriteLine(instruction);
 
-                //Console.WriteLine("Generate" + instruction + ",");
+                Console.WriteLine("Generate" + instruction + ",");
 
                 //Console.WriteLine(@"        public static void Generate" + instruction + "(X86Assembler assembler)\n        {\n            throw new NotImplementedException();\n        }\n");
             }
+            */
+
+            Random r = new Random();
+
+            InstructionEmitContext test = new InstructionEmitContext();
+
+            int regcap = 30;
+
+            //test.SetSize(InstructionInfo.W);
+
+            for (int i = 0; i < 10;i++)
+            {
+                test.Block.Add(new Operation(ILInstruction.Subtract, Operand.Register(r.Next(regcap)), Operand.Const((ulong)r.Next() | ((ulong)r.Next() << 32))));
+
+                Label label = test.CreateLabel();
+
+                Operand b = Operand.Register(r.Next(regcap));
+
+                test.Block.Add(new Operation(ILInstruction.CompareLessThan, b, Operand.Const((ulong)r.Next() | ((ulong)r.Next() << 32))));
+                test.Block.JumpIf(label, b);
+
+                test.Block.Add(new Operation(ILInstruction.Add, Operand.Register(r.Next(regcap)), Operand.Const((ulong)r.Next() | ((ulong)r.Next() << 32))));
+                test.Block.Add(new Operation(ILInstruction.Subtract, Operand.Register(r.Next(regcap)), Operand.Const((ulong)r.Next() | ((ulong)r.Next() << 32))));
+                test.Block.Add(new Operation(ILInstruction.Multiply, Operand.Register(r.Next(regcap)), Operand.Const((ulong)r.Next() | ((ulong)r.Next() << 32))));
+                test.Block.Add(new Operation(ILInstruction.Divide_Un, Operand.Register(r.Next(regcap)), Operand.Const((ulong)r.Next() | ((ulong)r.Next() << 32))));
+
+                test.MarkLabel(label);
+            }
+
+            test.Block.Add(new Operation(ILInstruction.Return, Operand.Register(0)));
+
+            ContextBlock msil = new ContextBlock();
+            ContextBlock x86 = new ContextBlock();
+
+            test.MsilFunc = Generator.CompileIL("", test.Block);
+
+            test.MsilFunc(&msil);
+
+            X86Compiler compiler = new X86Compiler();
+            compiler.Compile(test.Block);
+
+            NativeFunction X86func = compiler.GetNativeFunction();
+
+            Console.WriteLine(X86Decoder.DecodeBlock(X86func.Buffer));
+
+            X86func.Execute(&x86);
+
+            for (int i = 0; i < regcap; i++)
+            {
+                Console.WriteLine($"{msil.RegisterBuffer[i]:x16} {x86.RegisterBuffer[i]:x16} {msil.RegisterBuffer[i] == x86.RegisterBuffer[i]}");
+            }
+        }
+
+        static void TestRand()
+        {
+
 
             Tester test = new Tester();
 
@@ -151,101 +212,66 @@ namespace Tester
 
             void Random()
             {
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < 1; i++)
                 {
                     builder.AppendLine($"movz {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
                     builder.AppendLine($"movn {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
                     builder.AppendLine($"movk {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
 
                     builder.AppendLine($"add {reg(true)}, {reg(true)}, {r.Next(4095)}");
-                    builder.AppendLine($"sub {reg(true)}, {reg(true)}, {r.Next(4095)}, lsl #12");
-
+                    builder.AppendLine($"sub {reg(true)}, {reg(true)}, {r.Next(4095)}, lsl #12");                   
                     builder.AppendLine($"add {reg(true)}, {reg(true)}, {r.Next(4095)}");
-                    builder.AppendLine($"sub {reg(true)}, {reg(true)}, {r.Next(4095)}, lsl #12");
-
-                    builder.AppendLine($"csinv {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
-
-                    builder.AppendLine($"subs {reg(false)}, {reg(true)}, {r.Next(4095)}");
-
-                    builder.AppendLine($"subs {reg(false)}, {reg(true)}, {r.Next(4095)}, lsl #12");
-                   
-                    builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");
-
-                    builder.AppendLine($"subs {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(31)}");
-
+                    builder.AppendLine($"subs {reg(false)}, {reg(true)}, {r.Next(4095)}, lsl #12");                   
+                    builder.AppendLine($"csinv {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");                   
+                    builder.AppendLine($"subs {reg(false)}, {reg(true)}, {r.Next(4095)}");                  
+                    builder.AppendLine($"subs {reg(false)}, {reg(true)}, {r.Next(4095)}, lsl #12");                  
+                    builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");                   
+                    builder.AppendLine($"subs {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(31)}");                   
                     builder.AppendLine($"bic {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(31)}");
                     builder.AppendLine($"orr {reg(false)}, {reg(false)}, {reg(false)}, asr {r.Next(31)}");
                     builder.AppendLine($"orn {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(31)}");
                     builder.AppendLine($"eor {reg(false)}, {reg(false)}, {reg(false)}, ror {r.Next(31)}");
-                    builder.AppendLine($"eon {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");
-
+                    builder.AppendLine($"eon {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");                   
                     builder.AppendLine($"ccmp {reg(false)}, {r.Next(31)}, {r.Next(15)},{(Condition)r.Next(15)}");
-                    builder.AppendLine($"ccmn {reg(false)}, {r.Next(31)}, {r.Next(15)},{(Condition)r.Next(15)}");
-
-                    builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
-
-                    builder.AppendLine($"adr {reg(false,true)}, {r.Next(4096)}");
+                    builder.AppendLine($"ccmn {reg(false)}, {r.Next(31)}, {r.Next(15)},{(Condition)r.Next(15)}");                  
+                    builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");                  
+                    builder.AppendLine($"adr {reg(false, true)}, {r.Next(4096)}");
                     builder.AppendLine($"adrp {reg(false, true)}, {4096 * -r.Next(4096)}");
-                    builder.AppendLine($"adrp {reg(false, true)}, {4096 * r.Next(4096)}");
-                    
+                    builder.AppendLine($"adrp {reg(false, true)}, {4096 * r.Next(4096)}");                   
                     builder.AppendLine($"sub {reg(true, true)},{reg(true, true)}, {reg(false, false)}, sxtb");
                     builder.AppendLine($"sub {reg(true, true)},{reg(true, true)}, {reg(false, false)}, sxth");
                     builder.AppendLine($"add {reg(true, true)},{reg(true, true)}, {reg(false, false)}, sxtw");
-
                     builder.AppendLine($"subs {reg(false, true)},{reg(true, true)}, {reg(false, false)}, sxtb");
                     builder.AppendLine($"subs {reg(false, true)},{reg(true, true)}, {reg(false, false)}, sxth");
                     builder.AppendLine($"adds {reg(false, true)},{reg(true, true)}, {reg(false, false)}, sxtw");
-
-                    builder.AppendLine($"fcsel d{r.Next(32)}, d{r.Next(32)}, d{r.Next(32)}, {(Condition)r.Next(15)}");
-
-                    builder.AppendLine($"sbfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
-                    builder.AppendLine($"ubfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
-                    builder.AppendLine($"bfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
-
-                    builder.AppendLine($"udiv {reg(false)}, {reg(false)}, {reg(false)}");
-                    builder.AppendLine($"sdiv {reg(false)}, {reg(false)}, {reg(false)}");
-
-                    builder.AppendLine($"LSLV {reg(false)}, {reg(false)}, {reg(false)}");
-                    builder.AppendLine($"LSRV {reg(false)}, {reg(false)}, {reg(false)}");
-                    builder.AppendLine($"ASRV {reg(false)}, {reg(false)}, {reg(false)}");
-                    builder.AppendLine($"RORV {reg(false)}, {reg(false)}, {reg(false)}");
-
-                    builder.AppendLine($"madd {reg(false)}, {reg(false)},{reg(false)},{reg(false)}");
-                    builder.AppendLine($"msub {reg(false)}, {reg(false)},{reg(false)},{reg(false)}");
-                   
-                    //builder.AppendLine($"smaddl {reg(false,true)}, {reg(false,false)},{reg(false,false)},{reg(false,true)}");
-                    //builder.AppendLine($"smsubl {reg(false, true)}, {reg(false, false)},{reg(false, false)},{reg(false, true)}");
-                   
-                    //builder.AppendLine($"umaddl {reg(false, true)}, {reg(false, false)},{reg(false, false)},{reg(false, true)}");
-                    //builder.AppendLine($"umsubl {reg(false, true)}, {reg(false, false)},{reg(false, false)},{reg(false, true)}");
-
-                    builder.AppendLine($"dup v{r.Next(32)}.8b,{reg(false, false)}");
-                    builder.AppendLine($"dup v{r.Next(32)}.16b,{reg(false, false)}");
-
-                    builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");
-
-                    builder.AppendLine($"ccmp {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
-                    builder.AppendLine($"ccmn {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
-
-                    builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
-
-                    builder.AppendLine($"rbit {reg(false,false)}, {reg(false,false)}");
-                    builder.AppendLine($"rbit {reg(false)}, {reg(false)}");
-
-                    builder.AppendLine($"clz {reg(false, false)}, {reg(false, false)}");
-                    builder.AppendLine($"clz {reg(false)}, {reg(false)}");
-
-                    builder.AppendLine($"fmov d{r.Next(32)}, {reg(false,true)}");
-
-                    builder.AppendLine($"orr v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
-                    builder.AppendLine($"orn v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
-
-                    builder.AppendLine($"and v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
-                    builder.AppendLine($"bic v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
-
-                    builder.AppendLine($"eor v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
-
-                    builder.AppendLine($"cnt v{r.Next(32)}.8b, v{r.Next(32)}.8b");
+                    //builder.AppendLine($"sbfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
+                    //builder.AppendLine($"ubfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
+                    //builder.AppendLine($"bfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");                 
+                    //builder.AppendLine($"udiv {reg(false)}, {reg(false)}, {reg(false)}");
+                    //builder.AppendLine($"sdiv {reg(false)}, {reg(false)}, {reg(false)}");                  
+                   // builder.AppendLine($"LSLV {reg(false)}, {reg(false)}, {reg(false)}");
+                   // builder.AppendLine($"LSRV {reg(false)}, {reg(false)}, {reg(false)}");
+                   // builder.AppendLine($"ASRV {reg(false)}, {reg(false)}, {reg(false)}");
+                   // builder.AppendLine($"RORV {reg(false)}, {reg(false)}, {reg(false)}");                
+                   // builder.AppendLine($"madd {reg(false)}, {reg(false)},{reg(false)},{reg(false)}");
+                   // builder.AppendLine($"msub {reg(false)}, {reg(false)},{reg(false)},{reg(false)}");
+                   // builder.AppendLine($"dup v{r.Next(32)}.8b,{reg(false, false)}");
+                   // builder.AppendLine($"dup v{r.Next(32)}.16b,{reg(false, false)}");
+                   // builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");
+                   // builder.AppendLine($"ccmp {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
+                   // builder.AppendLine($"ccmn {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
+                   // builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
+                   // builder.AppendLine($"rbit {reg(false,false)}, {reg(false,false)}");
+                   // builder.AppendLine($"rbit {reg(false)}, {reg(false)}");
+                   // builder.AppendLine($"clz {reg(false, false)}, {reg(false, false)}");
+                   // builder.AppendLine($"clz {reg(false)}, {reg(false)}");
+                   // builder.AppendLine($"fmov d{r.Next(32)}, {reg(false, true)}");
+                   // builder.AppendLine($"orr v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
+                   // builder.AppendLine($"orn v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
+                   // builder.AppendLine($"and v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
+                   // builder.AppendLine($"bic v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
+                   // builder.AppendLine($"eor v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
+                    //builder.AppendLine($"cnt v{r.Next(32)}.8b, v{r.Next(32)}.8b");
 
                     builder.AppendLine($"");
                 }
@@ -255,13 +281,13 @@ namespace Tester
             {
                 builder.AppendLine(@$"
 
+subs x0, x0, #100
 
-add x0, x0, #100
 ");
             }
 
-            Generate();
-            //Random();
+            //Generate();
+            Random();
 
 
             builder.AppendLine("b end");
@@ -270,7 +296,14 @@ add x0, x0, #100
             test.WriteProgram(builder.ToString());
 
             test.TestProgram();
-            
+
+        }
+
+        static unsafe void Main(string[] args)
+        {
+            //Test();
+
+            TestRand();
         }
     }
 }

@@ -18,7 +18,7 @@ namespace GalacticARM.CodeGen.Assembler.X86
 
             foreach (var ins in disassembler.Disassemble())
             {
-                Out.AppendLine(ins.ToString());
+                Out.AppendLine($"0x{ins.Offset:x4} " + ins.ToString());
             }
 
             return Out.ToString();
