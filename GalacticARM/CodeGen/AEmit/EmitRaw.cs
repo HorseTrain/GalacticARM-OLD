@@ -530,7 +530,7 @@ namespace GalacticARM.CodeGen.AEmit
             {
                 case InstructionMnemonic.FMOV: EmitFloatingPoint.Fmov(context); break;
 
-                case InstructionMnemonic.SCVTF: EmitFloatingPoint.CVTF_Scalar(context,true); break;
+                case InstructionMnemonic.SCVTF: EmitFloatingPoint.CVTF_Scalar(context, true); break;
                 case InstructionMnemonic.UCVTF: EmitFloatingPoint.CVTF_Scalar(context, false); break;
 
                 case InstructionMnemonic.FCVTZS: EmitFloatingPoint.FCVTZ_Scalar(context,true); break;

@@ -15,8 +15,6 @@ namespace GalacticARM.CodeGen.Translation
 {
     public static class InterpreterTranslator
     {
-        public static bool UseJitCache = false;
-
         public static bool InDebugMode = false;
 
         public static Dictionary<ulong, InstructionEmitContext> TranslatedFunctions  { get; set; }
@@ -24,45 +22,6 @@ namespace GalacticARM.CodeGen.Translation
         static InterpreterTranslator()
         {
             TranslatedFunctions = new Dictionary<ulong, InstructionEmitContext>();
-
-            LoadJitCache();
-        }
-
-        static bool JitCacheLoaded = false;
-
-        public static void LoadJitCache()
-        {
-            if (UseJitCache)
-            {
-                string[] Files = Directory.GetFiles(@"D:\JitCache\");
-
-                Console.WriteLine("Loading Jit Cache.");
-
-                foreach (string file in Files)
-                {
-                    byte[] Buffer = File.ReadAllBytes(file);
-
-                    string Name = Path.GetFileName(file);
-
-                    ulong Addr = Convert.ToUInt64(Name.Split('_')[1], 16);
-
-                    InstructionEmitContext block = new InstructionEmitContext();
-
-                    block.Block = new OperationBlock();
-
-                    block.Block.LoadOperationBlock(Buffer);
-
-                    //Console.WriteLine($"{Addr:x16}");
-
-                    block.MsilFunc = Generator.CompileIL(Name, block.Block);
-
-                    TranslatedFunctions.Add(Addr, block);
-                }
-
-                Console.WriteLine("Jit Cache Loaded!!");
-            }
-
-            JitCacheLoaded = true;
         }
 
         public static InstructionEmitContext GetOrTranslate(ulong Address)
@@ -79,14 +38,6 @@ namespace GalacticARM.CodeGen.Translation
             if (Optimization.UsePasses && Out.Block.Storeable())
             {
                 Out.Block = Optimization.Optimize(Out.Block);
-            }
-
-            if (UseJitCache)
-            {          
-                if (Out.Block.Storeable())
-                {
-                    File.WriteAllBytes($@"D:\JitCache\FUNC_{Address:x16}", Out.Block.GetBuffer());
-                }
             }
 
             lock (TranslatedFunctions)

@@ -57,29 +57,29 @@ namespace GalacticARM.CodeGen.AEmit
             switch (context.CurrentOpCode)
             {
                 case OpCodeAddSubtractImmediate op:
-                    {
-                        return context.GetRegister(op.rn, true);
-                    }
+                {
+                    return context.GetRegister(op.rn, true);
+                }
 
                 case OpCodeAddSubtractShiftedRegister op:
-                    {
-                        return context.GetRegister(op.rn, false);
-                    }
+                {
+                    return context.GetRegister(op.rn, false);
+                }
 
                 case OpCodeLogicalShiftedRegister op:
-                    {
-                        return context.GetRegister(op.rn, false);
-                    }
+                {
+                    return context.GetRegister(op.rn, false);
+                }
 
                 case OpCodeLogicalImmediate op:
-                    {
-                        return context.GetRegister(op.rn, false);
-                    }
+                {
+                    return context.GetRegister(op.rn, false);
+                }
 
                 case OpCodeAddSubtractExtendedRegister op:
-                    {
-                        return context.GetRegister(op.rn, true);
-                    }
+                {
+                    return context.GetRegister(op.rn, true);
+                }
 
                 default: return context.ThrowUnknown();
             }
@@ -90,35 +90,35 @@ namespace GalacticARM.CodeGen.AEmit
             switch (context.CurrentOpCode)
             {
                 case OpCodeAddSubtractImmediate op:
-                    {
-                        return context.Const((ulong)op.imm12 << (op.shift * 12));
-                    }
+                {
+                    return context.Const((ulong)op.imm12 << (op.shift * 12));
+                }
 
                 case OpCodeAddSubtractShiftedRegister op:
-                    {
-                        return Shift(context, context.GetRegister(op.rm, false), op.imm6, (ShiftType)op.shift);
-                    }
+                {
+                    return Shift(context, context.GetRegister(op.rm, false), op.imm6, (ShiftType)op.shift);
+                }
 
                 case OpCodeLogicalShiftedRegister op:
-                    {
-                        return Shift(context, context.GetRegister(op.rm, false), op.imm6, (ShiftType)op.shift);
-                    }
+                {
+                    return Shift(context, context.GetRegister(op.rm, false), op.imm6, (ShiftType)op.shift);
+                }
 
                 case OpCodeLogicalImmediate op:
-                    {
-                        var mask = DecoderHelper.DecodeBitMask(op.RawOpCode, true);
+                {
+                    var mask = DecoderHelper.DecodeBitMask(op.RawOpCode, true);
 
-                        return context.Const(mask.WMask);
-                    }
+                    return context.Const(mask.WMask);
+                }
 
                 case OpCodeAddSubtractExtendedRegister op:
-                    {
-                        Operand m = context.GetRegister(op.rm);
+                {
+                    Operand m = context.GetRegister(op.rm);
 
-                        m = context.ShiftLeft(Extend(context, m, (IntType)op.option), context.Const(op.imm3));
+                    m = context.ShiftLeft(Extend(context, m, (IntType)op.option), context.Const(op.imm3));
 
-                        return m;
-                    }
+                    return m;
+                }
 
                 default: return context.ThrowUnknown();
             }
@@ -157,6 +157,9 @@ namespace GalacticARM.CodeGen.AEmit
             Operand d = context.And(n, m);
 
             context.SetRegister(GetALUD(context), d);
+
+            context.SetMisc(MiscRegister.V, context.Const(0));
+            context.SetMisc(MiscRegister.C, context.Const(0));
 
             CalculateNZ(context, d);
         }

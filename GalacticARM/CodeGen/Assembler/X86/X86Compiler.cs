@@ -34,6 +34,18 @@ namespace GalacticARM.CodeGen.Assembler.X86
                 Labels[i] = c.CreateLabel();
             }
 
+            bool UL = false;
+
+            for (int i = 0; i < block.Operations.Count; i++)
+            {
+                if (block.Operations[i].Name.ToString().Contains("Jump"))
+                {
+                    UL = true;
+                }
+            }
+
+            //Console.WriteLine(UL);
+
             for (int i = 0; i < block.Operations.Count; i++)
             {
                 c.Label(ref Labels[i]);
@@ -44,8 +56,11 @@ namespace GalacticARM.CodeGen.Assembler.X86
 
                 X86ILGenerator.Funcs[(int)CurrentOperation.Name](this);
                 
+                if (UL)
                 UnloadAllRegisters();
             }
+
+            
         }
 
         public NativeFunction GetNativeFunction()

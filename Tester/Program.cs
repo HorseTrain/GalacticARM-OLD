@@ -172,8 +172,6 @@ namespace Tester
 
         static void TestRand()
         {
-
-
             Tester test = new Tester();
 
             StringBuilder builder = new StringBuilder();
@@ -212,7 +210,7 @@ namespace Tester
 
             void Random()
             {
-                for (int i = 0; i < 1; i++)
+                for (int i = 0; i < 100; i++)
                 {
                     builder.AppendLine($"movz {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
                     builder.AppendLine($"movn {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
@@ -233,7 +231,8 @@ namespace Tester
                     builder.AppendLine($"eor {reg(false)}, {reg(false)}, {reg(false)}, ror {r.Next(31)}");
                     builder.AppendLine($"eon {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");                   
                     builder.AppendLine($"ccmp {reg(false)}, {r.Next(31)}, {r.Next(15)},{(Condition)r.Next(15)}");
-                    builder.AppendLine($"ccmn {reg(false)}, {r.Next(31)}, {r.Next(15)},{(Condition)r.Next(15)}");                  
+                    builder.AppendLine($"ccmn {reg(false)}, {r.Next(31)}, {r.Next(15)},{(Condition)r.Next(15)}");
+                    builder.AppendLine($"ands {reg(false)},  {reg(false)}, 0xf");
                     builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");                  
                     builder.AppendLine($"adr {reg(false, true)}, {r.Next(4096)}");
                     builder.AppendLine($"adrp {reg(false, true)}, {4096 * -r.Next(4096)}");

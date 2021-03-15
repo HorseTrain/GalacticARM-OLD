@@ -169,18 +169,18 @@ namespace GalacticARM.CodeGen.AEmit
                     
                     if (!IsSimd)
                     {
-                        Out = context.Add(BasePointer, context.Const(op.imm12 << GetSize(context)));
+                        Out = context.Add(BasePointer, context.Const(((long)op.imm12) << GetSize(context)));
                     }
                     else
                     {
-                        Out = context.Add(BasePointer, context.Const(op.imm12 << GetSimdSize(context)));
+                        Out = context.Add(BasePointer, context.Const(((long)op.imm12) << GetSimdSize(context)));
                     }
                     
                     break;
-                case OpCodeLoadStoreRegisterUnscaledImmediate op: Out = context.Add(BasePointer, context.Const((op.imm9 << 55) >> 55)); break;
+                case OpCodeLoadStoreRegisterUnscaledImmediate op: Out = context.Add(BasePointer, context.Const((((long)op.imm9) << 55) >> 55)); break;
                 case OpCodeLoadStoreRegisterImmediatePreIndexed op:
 
-                    Operand imm = context.Const((op.imm9 << 55) >> 55);
+                    Operand imm = context.Const((((long)op.imm9) << 55) >> 55);
 
                     BasePointer = context.Add(BasePointer, imm);
 
@@ -192,7 +192,7 @@ namespace GalacticARM.CodeGen.AEmit
 
                 case OpCodeLoadStoreRegisterImmediatePostIndexed op:
 
-                    imm = context.Const((op.imm9 << 55) >> 55);
+                    imm = context.Const((((long)op.imm9) << 55) >> 55);
 
                     context.SetRegister(op.rn, context.Add(BasePointer, imm), true);
 
@@ -206,11 +206,11 @@ namespace GalacticARM.CodeGen.AEmit
                     
                     if (!IsSimd)
                     {
-                        Imm = ((ulong)(((long)op.imm7 << 57) >> 57)) << (2 + (op.opc >> 1));
+                        Imm = ((ulong)((((long)op.imm7) << 57) >> 57)) << (2 + (op.opc >> 1));
                     }
                     else
                     {
-                        Imm = ((ulong)(((long)op.imm7 << 57) >> 57)) << (2 + op.opc);
+                        Imm = ((ulong)((((long)op.imm7) << 57) >> 57)) << (2 + op.opc);
                     }
 
                     Out = context.Add(BasePointer, context.Const(Imm));
@@ -221,11 +221,11 @@ namespace GalacticARM.CodeGen.AEmit
 
                     if (!IsSimd)
                     {
-                        Imm = ((ulong)(((long)op.imm7 << 57) >> 57)) << (2 + (op.opc >> 1));
+                        Imm = ((ulong)((((long)op.imm7) << 57) >> 57)) << (2 + (op.opc >> 1));
                     }
                     else
                     {
-                        Imm = ((ulong)(((long)op.imm7 << 57) >> 57)) << (2 + op.opc);
+                        Imm = ((ulong)((((long)op.imm7) << 57) >> 57)) << (2 + op.opc);
                     }
 
                     imm = context.Const(Imm);
@@ -242,11 +242,11 @@ namespace GalacticARM.CodeGen.AEmit
 
                     if (!IsSimd)
                     {
-                        Imm = ((ulong)(((long)op.imm7 << 57) >> 57)) << (2 + (op.opc >> 1));
+                        Imm = ((ulong)((((long)op.imm7) << 57) >> 57)) << (2 + (op.opc >> 1));
                     }
                     else
                     {
-                        Imm = ((ulong)(((long)op.imm7 << 57) >> 57)) << (2 + op.opc);
+                        Imm = ((ulong)((((long)op.imm7) << 57) >> 57)) << (2 + op.opc);
                     }
 
                     imm = context.Const(Imm);
