@@ -8,13 +8,20 @@ namespace GalacticARM.Decoding
 {
     public enum Condition
     {
-        EQ , NE,
-        CS , CC,
-        MI , PL,
-        VS , VC,
-        HI , LS,
-        GE , LT,
-        GT , LE,
-        AL , NV
+        EQ,
+        NE,
+        CS,
+        CC,
+        MI,
+        PL,
+        VS,
+        VC,
+        HI,
+        LS,
+        GE,
+        LT,
+        GT,
+        LE,
+        AL,
     }
 }

@@ -1,0 +1,4 @@
+C:\Users\Raymond\source\repos\GalacticARM\Testing\obj\Debug\netcoreapp3.1\Testing.csprojAssemblyReference.cache
+C:\Users\Raymond\source\repos\GalacticARM\Testing\obj\Debug\netcoreapp3.1\Testing.AssemblyInfoInputs.cache
+C:\Users\Raymond\source\repos\GalacticARM\Testing\obj\Debug\netcoreapp3.1\Testing.AssemblyInfo.cs
+C:\Users\Raymond\source\repos\GalacticARM\Testing\obj\Debug\netcoreapp3.1\Testing.csproj.CoreCompileInputs.cache

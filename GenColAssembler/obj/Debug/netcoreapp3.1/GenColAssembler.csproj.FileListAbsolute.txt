@@ -1,0 +1,9 @@
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\bin\Debug\netcoreapp3.1\GenColAssembler.deps.json
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\bin\Debug\netcoreapp3.1\GenColAssembler.dll
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\bin\Debug\netcoreapp3.1\GenColAssembler.pdb
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\obj\Debug\netcoreapp3.1\GenColAssembler.csprojAssemblyReference.cache
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\obj\Debug\netcoreapp3.1\GenColAssembler.AssemblyInfoInputs.cache
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\obj\Debug\netcoreapp3.1\GenColAssembler.AssemblyInfo.cs
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\obj\Debug\netcoreapp3.1\GenColAssembler.csproj.CoreCompileInputs.cache
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\obj\Debug\netcoreapp3.1\GenColAssembler.dll
+C:\Users\Raymond\source\repos\GalacticARM\GenColAssembler\obj\Debug\netcoreapp3.1\GenColAssembler.pdb
