@@ -252,6 +252,8 @@ namespace GalacticARM.CodeGen.X86
 
             Label l = Labels[Address];
 
+            c.nop();
+
             c.Label(ref l);
 
             InitRegAllocator();

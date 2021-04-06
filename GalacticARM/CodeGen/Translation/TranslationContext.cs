@@ -30,10 +30,6 @@ namespace GalacticARM.CodeGen.Translation
             Advance();
 
             Blocks = new Dictionary<ulong, Operand>();
-
-            KnwonReturns = new List<Operand>();
-
-           
         }
 
         public void Advance()

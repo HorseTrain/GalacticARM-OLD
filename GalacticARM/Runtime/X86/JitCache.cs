@@ -35,6 +35,11 @@ namespace GalacticARM.Runtime.X86
             }
 
             _base += (ulong)function.Buffer.Length;
+
+            if (_base >= Size)
+            {
+                throw new OutOfMemoryException();
+            }
         }
     }
 }

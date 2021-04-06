@@ -109,6 +109,29 @@ namespace GalacticARM.CodeGen.Translation
 
             Operand CurrentReturn = context.GetRegRaw(nameof(ExecutionContext.Return));
 
+            foreach (Operand kr in context.KnwonReturns)
+            {
+                context.CurrentSize = IntSize.Int64;
+
+                EmitUniversal.EmitIf(context,
+
+                    context.Ceq(context.Const(kr.Data),CurrentReturn),
+
+                    delegate()
+                    {
+                        if (!context.Blocks.ContainsKey(kr.Data))
+                        {
+                            TranslateFunction(context,kr.Data);
+                        }
+                        else
+                        {
+                            context.Jump(context.Blocks[kr.Data]);
+                        }
+                    }
+                    
+                    );
+            }
+
             context.Return(CurrentReturn);
         }
     }
