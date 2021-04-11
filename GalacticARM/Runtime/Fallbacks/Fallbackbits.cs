@@ -102,5 +102,31 @@ namespace GalacticARM.Runtime.Fallbacks
 
             context->SetQ((int)rd, res.AsSingle());
         }
+
+        public static ulong Rev(ulong value, ulong size)
+        {
+            ulong Out = 0;
+
+            if (size == 0)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    Out |= ((value >> (i * 8)) & 255) << ((3 - i) * 8);
+                }
+            }
+            else if (size == 1)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    Out |= ((value >> (i * 8)) & 255) << ((7 - i) * 8);
+                }
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
+            return Out;
+        }
     }
 }

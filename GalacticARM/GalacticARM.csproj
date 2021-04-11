@@ -21,4 +21,9 @@
     <PackageReference Include="UltimateOrb.Core" Version="1.4.0.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Capstone.NET-master\Gee.External.Capstone\Gee.External.Capstone.csproj" />
+    <ProjectReference Include="D:\Programming\Projects\Emulator\UnicornNET\UnicornNET.csproj" />
+  </ItemGroup>
+
 </Project>

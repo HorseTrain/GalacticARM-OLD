@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GalacticARM.Decoding
 {
-    static class BitUtils
+    public static class BitUtils
     {
         private static readonly sbyte[] HbsNibbleLut;
 
@@ -127,6 +127,34 @@ namespace GalacticARM.Decoding
                    MoveBit(imm, 4, 23) | MoveBit(imm, 3, 22) |
                    MoveBit(imm, 2, 21) | MoveBit(imm, 1, 20) |
                    MoveBit(imm, 0, 19);
+        }
+
+        public static long DecodeImm8Float(long imm, int size)
+        {
+            int e = 0, f = 0;
+
+            switch (size)
+            {
+                case 0: e = 8; f = 23; break;
+                case 1: e = 11; f = 52; break;
+
+                default: throw new ArgumentOutOfRangeException(nameof(size));
+            }
+
+            long value = (imm & 0x3f) << f - 4;
+
+            long eBit = (imm >> 6) & 1;
+            long sBit = (imm >> 7) & 1;
+
+            if (eBit != 0)
+            {
+                value |= (1L << e - 3) - 1 << f + 2;
+            }
+
+            value |= (eBit ^ 1) << f + e - 1;
+            value |= sBit << f + e;
+
+            return value;
         }
 
         // abcdefgh -> aBbbbbbb bbcdefgh 00000000 00000000 00000000 00000000 00000000 00000000 (B = ~b)

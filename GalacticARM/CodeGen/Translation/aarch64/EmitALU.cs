@@ -479,5 +479,66 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
             context.SetRegister("rd", d);
         }
+
+        public static void Rev(TranslationContext context)
+        {
+            context.SetSize("sf");
+
+            int sf = context.GetRaw("sf");
+
+            int opc = context.GetRaw("opc");
+
+            Operand value = context.GetRegister("rn");
+
+            Operand Out = context.Const(0);
+
+            if (sf == 0 && opc == 0)
+            {
+                Out = context.Call(nameof(Fallbackbits.Rev),value,0);
+            }
+            else if (sf == 1 && opc == 1)
+            {
+                Out = context.Call(nameof(Fallbackbits.Rev), value, 1);
+            }
+            else
+            {
+                context.ThrowUnknown();
+            }
+
+            context.SetRegister("rd",Out);
+        }
+
+        public static void Rev16(TranslationContext context)
+        {
+            context.SetSize("sf");
+
+            int sf = context.GetRaw("sf");
+
+            Operand n = context.GetRegister("rn");
+
+            Operand RevShort(Operand value)
+            {
+                return context.Or(context.ShiftLeft(context.And(value,0xFFU) ,8) , context.ShiftRight(context.And(value,0xFF00U) ,8));
+            }
+
+            Operand Out = RevShort(n);
+
+            if (sf == 0)
+            {
+                Out = context.Or(Out,context.ShiftLeft(RevShort(context.ShiftRight(n,16)),16));
+            }
+            else if (sf == 1)
+            {
+                Out = context.Or(Out, context.ShiftLeft(RevShort(context.ShiftRight(n, 16)), 16));
+                Out = context.Or(Out, context.ShiftLeft(RevShort(context.ShiftRight(n, 32)), 32));
+                Out = context.Or(Out, context.ShiftLeft(RevShort(context.ShiftRight(n, 48)), 48));
+            }
+            else
+            {
+                context.ThrowUnknown();
+            }
+
+            context.SetRegister("rd",Out);
+        }
     }
 }

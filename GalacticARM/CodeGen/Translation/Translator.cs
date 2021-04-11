@@ -2,9 +2,11 @@
 using GalacticARM.Decoding;
 using GalacticARM.IntermediateRepresentation;
 using GalacticARM.Runtime;
+using GalacticARM.Runtime.Fallbacks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,8 +16,8 @@ namespace GalacticARM.CodeGen.Translation
     {
         public static bool CompileByFunction { get; set; } = true;
 
-        static Dictionary<ulong,GuestFunction> Functions    { get; set; }
-        static Dictionary<ulong,ABasicBlock> BasicBlocks     { get; set; }
+        public static Dictionary<ulong,GuestFunction> Functions     { get; set; }
+        static Dictionary<ulong,ABasicBlock> BasicBlocks            { get; set; }
 
         static Translator()
         {
@@ -23,7 +25,7 @@ namespace GalacticARM.CodeGen.Translation
             BasicBlocks = new Dictionary<ulong, ABasicBlock>();
         }
 
-        public static GuestFunction GetOrTranslateFunction(ulong Address)
+        public static GuestFunction GetOrTranslateFunction(ulong Address, Optimizations optimizations = Optimizations.None)
         {
             GuestFunction Out;
 
@@ -32,7 +34,7 @@ namespace GalacticARM.CodeGen.Translation
                 return Out;
             }
 
-            Out = TranslateFunction(Address);
+            Out = TranslateFunction(Address,optimizations);
 
             lock (Functions)
             {
@@ -40,6 +42,8 @@ namespace GalacticARM.CodeGen.Translation
 
                 Functions.Add(Address,Out);
             }
+
+            Out.optimizations = optimizations;
 
             return Out;
         }
@@ -65,21 +69,23 @@ namespace GalacticARM.CodeGen.Translation
             return block;
         }
 
-        static GuestFunction TranslateFunction(ulong Address)
+        static GuestFunction TranslateFunction(ulong Address, Optimizations optimizations)
         {
             TranslationContext context = new TranslationContext();
 
-            TranslateFunction(context,Address);
+            TranslateFunction(context,Address,optimizations);
 
             return context.CompileFunction();
         }
 
-        static void TranslateFunction(TranslationContext context, ulong Address)
+        static void TranslateFunction(TranslationContext context, ulong Address, Optimizations optimizations)
         {
             if (context.Blocks.ContainsKey(Address))
                 return;
 
             ABasicBlock block = GetOrTranslateBasicBlock(Address);
+
+            context.CurrentBlock = block;
 
             Operand Label = context.CreateLabel();
 
@@ -104,32 +110,46 @@ namespace GalacticARM.CodeGen.Translation
                 if (CpuThread.InDebugMode)
                 {
                     context.Call(nameof(CpuThread.DebugStep),context.ContextPointer(),opCode.Address);
+
+                    EmitUniversal.EmitIf(context,
+                        
+                        context.Ceq(context.GetRegRaw(nameof(ExecutionContext.Return)),0),
+                        
+                        delegate()
+                        {
+                            context.Return(opCode.Address + 4);
+                        }
+                        
+                        );
                 }
             }
 
             Operand CurrentReturn = context.GetRegRaw(nameof(ExecutionContext.Return));
 
-            foreach (Operand kr in context.KnwonReturns)
+            if (CompileByFunction)
             {
-                context.CurrentSize = IntSize.Int64;
+                foreach (Operand kr in context.KnwonReturns)
+                {
+                    context.CurrentSize = IntSize.Int64;
 
-                EmitUniversal.EmitIf(context,
+                    EmitUniversal.EmitIf(context,
 
-                    context.Ceq(context.Const(kr.Data),CurrentReturn),
+                        context.Ceq(context.Const(kr.Data), CurrentReturn),
 
-                    delegate()
-                    {
-                        if (!context.Blocks.ContainsKey(kr.Data))
+                        delegate ()
                         {
-                            TranslateFunction(context,kr.Data);
+                            if (!context.Blocks.ContainsKey(kr.Data))
+                            {
+                                TranslateFunction(context, kr.Data, optimizations);
+                            }
+                            else
+                            {
+                                context.Jump(context.Blocks[kr.Data]);
+                            }
                         }
-                        else
-                        {
-                            context.Jump(context.Blocks[kr.Data]);
-                        }
-                    }
-                    
-                    );
+
+                        );
+                }
             }
 
             context.Return(CurrentReturn);

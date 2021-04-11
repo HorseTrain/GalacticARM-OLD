@@ -1,4 +1,5 @@
-﻿using GalacticARM.IntermediateRepresentation;
+﻿using GalacticARM.CodeGen.Translation;
+using GalacticARM.IntermediateRepresentation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +15,17 @@ namespace GalacticARM.Runtime
         public OperationBlock IR    { get; set; }
         public byte[] Buffer        { get; set; }
         public _func Func           { get; set; }
+        public ulong Ptr            { get; set; }
 
-        public ulong Execute(ExecutionContext* context) => Func(context);
+        public int TimesCalled              { get; set; }
+        public Optimizations optimizations  { get; set; }
+
+        public ulong Execute(ExecutionContext* context)
+        {
+            TimesCalled++;
+
+            return Func(context);
+        }
 
         public override string ToString()
         {

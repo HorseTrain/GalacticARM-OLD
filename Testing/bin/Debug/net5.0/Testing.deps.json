@@ -709,12 +709,19 @@
       },
       "GalacticARM/1.0.0": {
         "dependencies": {
+          "Gee.External.Capstone": "1.0.0",
           "Iced": "1.11.0",
           "SharpDisasm": "1.1.11",
-          "UltimateOrb.Core": "1.4.0.5"
+          "UltimateOrb.Core": "1.4.0.5",
+          "UnicornNET": "1.0.0"
         },
         "runtime": {
           "GalacticARM.dll": {}
+        }
+      },
+      "Gee.External.Capstone/1.0.0": {
+        "runtime": {
+          "Gee.External.Capstone.dll": {}
         }
       },
       "Keystone.Net/1.1.0": {
@@ -1271,6 +1278,11 @@
       "hashPath": "ultimateorb.core.1.4.0.5.nupkg.sha512"
     },
     "GalacticARM/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Gee.External.Capstone/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

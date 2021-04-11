@@ -6,6 +6,7 @@ using Iced.Intel;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using static Iced.Intel.AssemblerRegisters;
@@ -76,18 +77,18 @@ namespace GalacticARM.CodeGen.X86
             reg.Locked = true;
 
             if (type != RequestType.Write)
-            Load(reg);
+                Load(reg);
         }
 
         int spill = 0;
 
-        public int AllocateRegister(int Guest,RequestType type)
+        public int AllocateRegister(int Guest, RequestType type)
         {
             foreach (GuestRegister reg in Guests)
             {
                 if (!reg.Loaded)
                 {
-                    LoadRegister(reg,Guest,type);
+                    LoadRegister(reg, Guest, type);
 
                     return reg.Host;
                 }
@@ -139,37 +140,49 @@ namespace GalacticARM.CodeGen.X86
 
     public class GAssembler
     {
-        OperationBlock SourceBlock              { get; set; }
-        Assembler c                             { get; set; }
+        OperationBlock SourceBlock { get; set; }
+        Assembler c { get; set; }
 
         ControlFlowGraph cfg;
+
+        List<int> ToBeCompiled = new List<int>();
 
         #region InitStuff
         void Init(OperationBlock block)
         {
             cfg = new ControlFlowGraph(block);
 
+            Optimizers.RunMoveOpt(cfg);
+
             SourceBlock = block;
 
             c = new Assembler(64);
 
-            c.mov(r15,rcx);
+            c.mov(r15, rcx);
 
             c.push(rbx);
             c.push(rbp);
             c.push(rsi);
             c.push(rdi);
 
-            c.sub(rsp,0x58);
+            c.sub(rsp, 0x58);
 
             Compiled = new HashSet<int>();
 
             foreach (Node node in cfg.Nodes)
             {
-                Labels.Add((int)node.BaseAddress,c.CreateLabel());
+                Labels.Add((int)node.BaseAddress, c.CreateLabel());
             }
 
             CompileBasicBlock(0);
+
+            foreach (Node node in cfg.Nodes)
+            {
+                if (node.BaseAddress != 0)
+                {
+                    CompileBasicBlock((int)node.BaseAddress);
+                }
+            }
         }
 
         public GAssembler(OperationBlock block)
@@ -229,7 +242,10 @@ namespace GalacticARM.CodeGen.X86
 
                 {IntermediateRepresentation.Instruction.Vector_ConvertToFloat,EmitVector_ConvertToFloat },
                 {IntermediateRepresentation.Instruction.Vector_ConvertToInt,EmitVector_ConvertToInt },
-                {IntermediateRepresentation.Instruction.Vector_ScalarOperation,EmitVector_ScalarOperation }
+                {IntermediateRepresentation.Instruction.Vector_ScalarOperation,EmitVector_ScalarOperation },
+                {IntermediateRepresentation.Instruction.Vector_FloatVectorOperation,EmitVector_FloatVectorOperation },
+
+                {IntermediateRepresentation.Instruction.HardPC, EmitHardPC}
 
             };
 
@@ -238,6 +254,17 @@ namespace GalacticARM.CodeGen.X86
 
         HashSet<int> Compiled;
         Dictionary<int, Label> Labels = new Dictionary<int, Label>();
+
+        public void EndAll()
+        {
+            UnloadAllRegisters();
+
+            c.add(rsp, 0x58);
+            c.pop(rdi);
+            c.pop(rsi);
+            c.pop(rbp);
+            c.pop(rbx);
+        }
 
         void CompileBasicBlock(int Address)
         {
@@ -280,7 +307,7 @@ namespace GalacticARM.CodeGen.X86
 
             byte[] Out = new byte[stream.Length];
 
-            Buffer.BlockCopy(stream.GetBuffer(),0,Out,0,Out.Length);
+            Buffer.BlockCopy(stream.GetBuffer(), 0, Out, 0, Out.Length);
 
             GuestFunction Out_F = new GuestFunction();
 
@@ -292,6 +319,8 @@ namespace GalacticARM.CodeGen.X86
             }
 
             Out_F.IR = SourceBlock;
+
+            Out_F.Ptr = (ulong)Marshal.GetFunctionPointerForDelegate(Out_F.Func);
 
             return Out_F;
         }
@@ -326,7 +355,7 @@ namespace GalacticARM.CodeGen.X86
         {
             rax, 
             //rcx,
-            rdx, 
+            rdx,
             rbx,
             //rsp,
             rbp,
@@ -345,11 +374,11 @@ namespace GalacticARM.CodeGen.X86
         {
             eax,     
             //ecx,    
-            edx,   
+            edx,
             ebx,     
             //esp,   
-            ebp,  
-            esi,  
+            ebp,
+            esi,
             edi,
             r8d,
             r9d,
@@ -418,7 +447,7 @@ namespace GalacticARM.CodeGen.X86
             xmm15,
         };
 
-        int GetGuestReg(int guest, RequestType type = RequestType.All) => BaseAllocator.AllocateRegister(guest,type);
+        int GetGuestReg(int guest, RequestType type = RequestType.All) => BaseAllocator.AllocateRegister(guest, type);
 
         void UnloadAllRegisters()
         {
@@ -456,7 +485,7 @@ namespace GalacticARM.CodeGen.X86
 
         #region Emit
 
-        dynamic GetArgument(int index,RequestType type = RequestType.All)
+        dynamic GetArgument(int index, RequestType type = RequestType.All, bool AllowImm = true, bool FullImm = false)
         {
             Operand o = CurrentOperation.Operands[index];
 
@@ -465,7 +494,7 @@ namespace GalacticARM.CodeGen.X86
 
             if (o.Type == OperandType.Register)
             {
-                int reg = GetGuestReg((int)o.Data,type);
+                int reg = GetGuestReg((int)o.Data, type);
 
                 if (CurrentOperation.Size == IntSize.Int32)
                 {
@@ -482,7 +511,23 @@ namespace GalacticARM.CodeGen.X86
             }
             else if (o.Type == OperandType.Immediate)
             {
-                c.mov(rcx,o.Data);
+                if (AllowImm)
+                {
+                    if (FullImm)
+                    {
+                        if (CurrentOperation.Size == IntSize.Int32)
+                            return (uint)o.Data;
+
+                        return o.Data;
+                    }
+
+                    if (o.Data < (uint.MaxValue >> 1))
+                    {
+                        return (int)o.Data;
+                    }
+                }
+
+                c.mov(rcx, o.Data);
 
                 if (CurrentOperation.Size == IntSize.Int32)
                     return ecx;
@@ -491,7 +536,7 @@ namespace GalacticARM.CodeGen.X86
             }
             else if (o.Type == OperandType.VectorRegister)
             {
-                int reg = VectorAllocator.AllocateRegister((int)o.Data,type);
+                int reg = VectorAllocator.AllocateRegister((int)o.Data, type);
 
                 return _Xmm[reg];
             }
@@ -511,12 +556,12 @@ namespace GalacticARM.CodeGen.X86
             if (type == RequestType.All && index == 0 && CurrentOperation.Operands.Length != 1)
                 type = RequestType.Write;
 
-            return GetGuestReg((int)o.Data,type);
+            return GetGuestReg((int)o.Data, type);
         }
 
-        public void EmitAdd() => c.add(GetArgument(0,RequestType.Write), GetArgument(1,RequestType.Read));
+        public void EmitAdd() => c.add(GetArgument(0, RequestType.Write), GetArgument(1, RequestType.Read, true));
 
-        public void EmitAnd() => c.and(GetArgument(0, RequestType.Write), GetArgument(1, RequestType.Read));
+        public void EmitAnd() => c.and(GetArgument(0, RequestType.Write), GetArgument(1, RequestType.Read, true));
 
         public void EmitCall()
         {
@@ -571,7 +616,7 @@ namespace GalacticARM.CodeGen.X86
             c.add(rsp, offset);
             c.pop(r15);
 
-            c.mov(__[r15 + (8 * (int)Func.Data)],rax);
+            c.mov(__[r15 + (8 * (int)Func.Data)], rax);
         }
 
         public void EmitCeq()
@@ -631,13 +676,13 @@ namespace GalacticARM.CodeGen.X86
 
         public void EmitClt()
         {
-            c.cmp(GetArgument(0),GetArgument(1));
+            c.cmp(GetArgument(0), GetArgument(1));
 
             int reg = GetRegArgument(0);
 
             c.setl(_8[reg]);
 
-            c.and(GetArgument(0),1);
+            c.and(GetArgument(0), 1);
         }
 
         public void EmitClt_Un()
@@ -709,7 +754,7 @@ namespace GalacticARM.CodeGen.X86
                 c.idiv(rcx);
             }
 
-            c.mov(__[r15 + ((int)des.Data * 8)],rax);
+            c.mov(__[r15 + ((int)des.Data * 8)], rax);
         }
 
         public void EmitDivide_Un()
@@ -721,7 +766,7 @@ namespace GalacticARM.CodeGen.X86
             Operand des = CurrentOperation.Operands[0];
             Operand src = CurrentOperation.Operands[1];
 
-            c.mov(rdx,0);
+            c.mov(rdx, 0);
 
             c.mov(rax, __[r15 + ((int)des.Data * 8)]);
 
@@ -746,6 +791,14 @@ namespace GalacticARM.CodeGen.X86
             c.mov(__[r15 + ((int)des.Data * 8)], rax);
         }
 
+        void AddCompQue(int i)
+        {
+            if (!Compiled.Contains(i))
+            {
+                ToBeCompiled.Add(i);
+            }
+        }
+
         public void EmitJump()
         {
             UnloadAllRegisters();
@@ -756,8 +809,6 @@ namespace GalacticARM.CodeGen.X86
                 return;
 
             c.jmp(Labels[Des]);
-
-            CompileBasicBlock(Des);
         }
 
         public void EmitJumpIf()
@@ -769,15 +820,12 @@ namespace GalacticARM.CodeGen.X86
 
             int test = (int)CurrentOperation.Operands[0].Data;
 
-            c.mov(rax,__[r15 + (test * 8)]);
+            c.mov(rax, __[r15 + (test * 8)]);
 
-            c.cmp(rax,1);
+            c.cmp(rax, 1);
 
             c.je(Labels[Des]);
             c.jmp(Labels[next]);
-
-            CompileBasicBlock(Des);
-            CompileBasicBlock(next);
         }
 
         public void EmitLoad64() => c.mov(_64[GetRegArgument(0)], __[GetArgument(0, RequestType.Read)]);
@@ -786,7 +834,7 @@ namespace GalacticARM.CodeGen.X86
         {
             c.mov(_16[GetRegArgument(0)], __[GetArgument(0, RequestType.Read)]);
 
-            c.and(_64[GetRegArgument(0)],ushort.MaxValue);
+            c.and(_64[GetRegArgument(0)], ushort.MaxValue);
         }
         public void EmitLoad32() => c.mov(_32[GetRegArgument(0)], __[GetArgument(0, RequestType.Read)]);
 
@@ -802,7 +850,7 @@ namespace GalacticARM.CodeGen.X86
             throw new NotImplementedException();
         }
 
-        public void EmitMove() => c.mov(GetArgument(0), GetArgument(1));
+        public void EmitMove() => c.mov(GetArgument(0), GetArgument(1, RequestType.Read, true, true));
 
         public void EmitMultiply()
         {
@@ -811,13 +859,13 @@ namespace GalacticARM.CodeGen.X86
             Operand des = CurrentOperation.Operands[0];
             Operand src = CurrentOperation.Operands[1];
 
-            c.mov(rdx,0);
+            c.mov(rdx, 0);
 
-            c.mov(rcx,__[r15 + ((int)des.Data * 8)]);
+            c.mov(rcx, __[r15 + ((int)des.Data * 8)]);
 
             if (src.Type == OperandType.Immediate)
             {
-                c.mov(rax,src.Data);
+                c.mov(rax, src.Data);
             }
             else
             {
@@ -829,7 +877,7 @@ namespace GalacticARM.CodeGen.X86
             else
                 c.imul(rcx);
 
-            c.mov(__[r15 + ((int)des.Data * 8)],rax);
+            c.mov(__[r15 + ((int)des.Data * 8)], rax);
         }
 
         public void EmitNot() => c.not(GetArgument(0));
@@ -838,15 +886,9 @@ namespace GalacticARM.CodeGen.X86
 
         public void EmitReturn()
         {
-            UnloadAllRegisters();
+            EndAll();
 
-            c.add(rsp, 0x58);
-            c.pop(rdi);
-            c.pop(rsi);
-            c.pop(rbp);
-            c.pop(rbx);
-
-            c.mov(rax,GetArgument(0));
+            c.mov(rax, GetArgument(0));
             c.ret();
         }
 
@@ -858,15 +900,15 @@ namespace GalacticARM.CodeGen.X86
 
             if (src.Type == OperandType.Immediate)
             {
-                c.shl(des,(byte)src.Data);
+                c.shl(des, (byte)src.Data);
             }
             else
             {
                 int s = GetRegArgument(1);
 
-                c.mov(rcx,_64[s]);
+                c.mov(rcx, _64[s]);
 
-                c.shl(GetArgument(0),cl);
+                c.shl(GetArgument(0), cl);
             }
         }
 
@@ -921,7 +963,7 @@ namespace GalacticARM.CodeGen.X86
         {
             int des = GetRegArgument(0);
 
-            c.movsxd(_64[des],_32[des]);
+            c.movsxd(_64[des], _32[des]);
         }
 
         public void EmitSignExtend8()
@@ -943,9 +985,9 @@ namespace GalacticARM.CodeGen.X86
 
         public void EmitVector_ClearVector()
         {
-            c.mov(rcx,0);
+            c.mov(rcx, 0);
 
-            c.movq(GetArgument(0,RequestType.Write),rcx);
+            c.movq(GetArgument(0, RequestType.Write), rcx);
         }
 
         public void EmitVector_SetVectorElement()
@@ -953,12 +995,14 @@ namespace GalacticARM.CodeGen.X86
             Operand index = CurrentOperation.Operands[2];
             Operand size = CurrentOperation.Operands[3];
 
+            //Console.WriteLine(CurrentOperation);
+
             switch (size.Data)
             {
-                case 0: c.pinsrb(GetArgument(0, RequestType.Read), GetArgument(1), (byte)index.Data); break;
-                case 1: c.pinsrw(GetArgument(0, RequestType.Read), GetArgument(1), (byte)index.Data); break;
-                case 2: c.pinsrd(GetArgument(0, RequestType.Read), GetArgument(1), (byte)index.Data); break;
-                case 3: c.pinsrq(GetArgument(0, RequestType.Read), GetArgument(1), (byte)index.Data); break;
+                case 0: c.pinsrb(GetArgument(0, RequestType.Read), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
+                case 1: c.pinsrw(GetArgument(0, RequestType.Read), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
+                case 2: c.pinsrd(GetArgument(0, RequestType.Read), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
+                case 3: c.pinsrq(GetArgument(0, RequestType.Read), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
                 default: throw new NotImplementedException();
             }
         }
@@ -970,17 +1014,17 @@ namespace GalacticARM.CodeGen.X86
 
             switch (size.Data)
             {
-                case 0: c.pextrb(GetArgument(0, RequestType.Write), GetArgument(1), (byte)index.Data); break;
-                case 1: c.pextrw(GetArgument(0, RequestType.Write), GetArgument(1), (byte)index.Data); break;
-                case 2: c.pextrd(GetArgument(0, RequestType.Write), GetArgument(1), (byte)index.Data); break;
-                case 3: c.pextrq(GetArgument(0, RequestType.Write), GetArgument(1), (byte)index.Data); break;
+                case 0: c.pextrb(GetArgument(0, RequestType.Write), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
+                case 1: c.pextrw(GetArgument(0, RequestType.Write), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
+                case 2: c.pextrd(GetArgument(0, RequestType.Write), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
+                case 3: c.pextrq(GetArgument(0, RequestType.Write), GetArgument(1, RequestType.All, false), (byte)index.Data); break;
                 default: throw new NotImplementedException();
             }
         }
 
         public void EmitVector_Move()
         {
-            c.movaps(GetArgument(0,RequestType.Read), GetArgument(1, RequestType.Read));
+            c.movaps(GetArgument(0, RequestType.Read), GetArgument(1, RequestType.Read));
         }
 
         public void EmitVector_Load()
@@ -989,8 +1033,8 @@ namespace GalacticARM.CodeGen.X86
 
             switch (size)
             {
-                case 4: c.vmovupd(GetArgument(0,RequestType.Write),__[GetArgument(1)]); break;
-                default: throw new NotImplementedException(); 
+                case 4: c.vmovupd(GetArgument(0, RequestType.Write), __[GetArgument(1)]); break;
+                default: throw new NotImplementedException();
             }
         }
 
@@ -1000,12 +1044,12 @@ namespace GalacticARM.CodeGen.X86
 
             switch (size)
             {
-                case 4: c.vmovupd(__[GetArgument(0,RequestType.Read)], GetArgument(1)); break;
+                case 4: c.vmovupd(__[GetArgument(0, RequestType.Read)], GetArgument(1)); break;
                 default: throw new NotImplementedException();
             }
         }
 
-        public void EmitVector_And() => c.vandps(GetArgument(0, RequestType.Write), GetArgument(0,RequestType.Read),GetArgument(1));
+        public void EmitVector_And() => c.vandps(GetArgument(0, RequestType.Write), GetArgument(0, RequestType.Read), GetArgument(1));
         public void EmitVector_Orr() => c.vorps(GetArgument(0, RequestType.Write), GetArgument(0, RequestType.Read), GetArgument(1));
         public void EmitVector_Xor() => c.vxorps(GetArgument(0, RequestType.Write), GetArgument(0, RequestType.Read), GetArgument(1));
 
@@ -1035,31 +1079,7 @@ namespace GalacticARM.CodeGen.X86
             }
             else
             {
-                if (to == 2)
-                {
-                    //uint -> float
-
-                    c.mov(ecx,GetArgument(1));
-
-                    c.cvtsi2sd(GetArgument(0, RequestType.Write), rcx); //Convert To Double
-                    c.vcvtsd2ss(GetArgument(0, RequestType.Write), GetArgument(0, RequestType.Write), GetArgument(0)); //Convert To Float
-
-                    c.mov(rcx,0);
-
-                    c.pinsrd(GetArgument(0, RequestType.Write), ecx, 1);
-                }
-                else if (to == 3)
-                {
-                    //throw new NotImplementedException();
-
-                    c.cvtsi2sd(GetArgument(0, RequestType.Write), GetArgument(1));
-
-                    //THIS IS SCUFFED 
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                throw new NotImplementedException();
             }
         }
 
@@ -1090,7 +1110,7 @@ namespace GalacticARM.CodeGen.X86
             IntermediateRepresentation.Instruction instruction = (IntermediateRepresentation.Instruction)CurrentOperation.Operands[0].Data;
 
             int size = (int)CurrentOperation.Operands[3].Data;
-            
+
             if (size == 3)
             {
                 switch (instruction)
@@ -1117,6 +1137,56 @@ namespace GalacticARM.CodeGen.X86
             {
                 throw new NotImplementedException();
             }
+        }
+
+        public void EmitVector_FloatVectorOperation()
+        {
+            IntermediateRepresentation.Instruction instruction = (IntermediateRepresentation.Instruction)CurrentOperation.Operands[0].Data;
+
+            int size = (int)CurrentOperation.Operands[3].Data;
+
+            if (size == 3)
+            {
+                switch (instruction)
+                {
+                    case IntermediateRepresentation.Instruction.Vector_Fmul: c.vmulpd(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fadd: c.vaddpd(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fsub: c.vsubpd(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fdiv: c.vdivpd(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+
+                    case IntermediateRepresentation.Instruction.Vector_Fceq: c.cmppd(GetArgument(1), GetArgument(2), 0); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fcge: c.cmppd(GetArgument(1), GetArgument(2), 5); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fcgt: c.cmppd(GetArgument(1), GetArgument(2), 6); break;
+                    default: throw new NotImplementedException();
+                }
+            }
+            else
+            {
+                switch (instruction)
+                {
+                    case IntermediateRepresentation.Instruction.Vector_Fmul: c.vmulps(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fadd: c.vaddps(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fsub: c.vsubps(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fdiv: c.vdivps(GetArgument(1), GetArgument(1), GetArgument(2)); break;
+
+                    case IntermediateRepresentation.Instruction.Vector_Frsqrt: c.rsqrtps(GetArgument(1), GetArgument(1)); break;
+
+                    case IntermediateRepresentation.Instruction.Vector_Fceq: c.cmpps(GetArgument(1), GetArgument(2), 0); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fcge: c.cmpps(GetArgument(1), GetArgument(2), 5); break;
+                    case IntermediateRepresentation.Instruction.Vector_Fcgt: c.cmpps(GetArgument(1), GetArgument(2), 6); break;
+                    default: throw new NotImplementedException();
+                }
+            }
+        }
+
+        public void EmitHardPC()
+        {
+            EndAll();
+
+            c.mov(rdx, GetArgument(0));
+            c.mov(rcx, r15);
+
+            c.jmp(rdx);
         }
 
         #endregion

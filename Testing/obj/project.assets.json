@@ -1221,15 +1221,27 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v5.0",
         "dependencies": {
+          "Gee.External.Capstone": "1.0.0",
           "Iced": "1.11.0",
           "SharpDisasm": "1.1.11",
-          "UltimateOrb.Core": "1.4.0.5"
+          "UltimateOrb.Core": "1.4.0.5",
+          "UnicornNET": "1.0.0"
         },
         "compile": {
           "bin/placeholder/GalacticARM.dll": {}
         },
         "runtime": {
           "bin/placeholder/GalacticARM.dll": {}
+        }
+      },
+      "Gee.External.Capstone/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v5.0",
+        "compile": {
+          "bin/placeholder/Gee.External.Capstone.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Gee.External.Capstone.dll": {}
         }
       },
       "Keystone.Net/1.1.0": {
@@ -1247,7 +1259,7 @@
       },
       "UnicornNET/1.0.0": {
         "type": "project",
-        "framework": ".NETStandard,Version=v2.0",
+        "framework": ".NETCoreApp,Version=v5.0",
         "compile": {
           "bin/placeholder/UnicornNET.dll": {}
         },
@@ -4578,6 +4590,11 @@
       "type": "project",
       "path": "../GalacticARM/GalacticARM.csproj",
       "msbuildProject": "../GalacticARM/GalacticARM.csproj"
+    },
+    "Gee.External.Capstone/1.0.0": {
+      "type": "project",
+      "path": "../Capstone.NET-master/Gee.External.Capstone/Gee.External.Capstone.csproj",
+      "msbuildProject": "../Capstone.NET-master/Gee.External.Capstone/Gee.External.Capstone.csproj"
     },
     "Keystone.Net/1.1.0": {
       "type": "project",

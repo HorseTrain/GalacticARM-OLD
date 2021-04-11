@@ -37,7 +37,24 @@ namespace GalacticARM.IntermediateRepresentation
             Nodes = new List<Node>();
 
             GetBasicBlocks(0);
+
+            while (true)
+            {
+                if (Que.Count == 0)
+                    break;
+
+                int[] tmp = Que.ToArray();
+
+                foreach (int i in tmp)
+                {
+                    Que.Remove(i);
+
+                    GetBasicBlocks(i);
+                }
+            }
         }
+
+        List<int> Que = new List<int>();
 
         Node GetBasicBlocks(int Address)
         {
@@ -82,8 +99,11 @@ namespace GalacticARM.IntermediateRepresentation
                         throw new NotImplementedException();
                     }
 
-                    Out.Next = GetBasicBlocks(i + 1);
-                    Out.Branch = GetBasicBlocks(New);
+                    Que.Add(i+1);
+                    Que.Add(New);
+
+                    //Out.Next = GetBasicBlocks(i + 1);
+                    //Out.Branch = GetBasicBlocks(New);
 
                     break;
                 }
@@ -97,5 +117,17 @@ namespace GalacticARM.IntermediateRepresentation
         public Node GetBlock(int Address) => Blocks[Address];
 
         public bool Contains(int Address) => Blocks.ContainsKey(Address);
+
+        public override string ToString()
+        {
+            StringBuilder Out = new StringBuilder();
+
+            foreach (Node node in Nodes)
+            {
+                Out.AppendLine(node.BasicBlock.ToString());
+            }
+
+            return Out.ToString();
+        }
     }
 }

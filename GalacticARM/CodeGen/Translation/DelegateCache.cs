@@ -34,20 +34,25 @@ namespace GalacticARM.CodeGen.Translation
 
         static Delegate[] Methods = new Delegate[]
         {
-            new _Void___Ulong_Ulong(CpuThread.CallSVC),
-            new _Void___Ulong_Ulong(CpuThread.DebugStep),
+            new _Ulong___Ulong(FallbackFloat.FCompare),
             new _Ulong___Ulong_Ulong(Fallbackbits.CountLeadingZeros),
+            new _Ulong___Ulong_Ulong(FallbackCF.GetSoftJump),
+            new _Ulong___Ulong_Ulong(FallbackMemory.TestExclusive_fb),
+            new _Ulong___Ulong_Ulong(UnicornCpuThread.FallbackStepUni),
             new _Ulong___Ulong_Ulong_Ulong(Fallbackbits.MulH),
 
-            new _Ulong___Ulong_Ulong(FallbackMemory.TestExclusive_fb),
-            new _Void___Ulong_Ulong(FallbackMemory.SetExclusive_fb),
-            new _Void___Ulong(FallbackMemory.Clrex_fb),
-            new _Void___Ulong(FallbackFloat.FB_Fcvtz_Scalar_Fixed),
             new _Void___Ulong(FallbackFloat.ConvertPerc),
-            new _Void___Ulong_Ulong_Ulong_Ulong(FallbackFloat.Fsqrt),
+            new _Void___Ulong(FallbackFloat.FB_Fcvtz_Scalar_Fixed),
             new _Void___Ulong(FallbackFloat.Fcmp),
+            new _Void___Ulong(FallbackFloat.UnsingedToFloat),
+            new _Void___Ulong(FallbackMemory.Clrex_fb),
+            new _Void___Ulong_Ulong(CpuThread.CallSVC),
+            new _Void___Ulong_Ulong(CpuThread.DebugStep),
+            new _Void___Ulong_Ulong(FallbackMemory.SetExclusive_fb),
             new _Void___Ulong_Ulong_Ulong(Fallbackbits.Cnt),
-            new _Ulong___Ulong(FallbackFloat.FCompare)
+            new _Void___Ulong_Ulong_Ulong_Ulong(FallbackFloat.Fsqrt),
+            new _Ulong___Ulong_Ulong(Fallbackbits.Rev),
+            new _Ulong___Ulong_Ulong_Ulong(FallbackFloat.FloorCel),
         };
 
         static DelegateCache()

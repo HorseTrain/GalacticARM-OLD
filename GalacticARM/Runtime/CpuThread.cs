@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnicornNET;
 
 namespace GalacticARM.Runtime
 {
@@ -19,6 +20,10 @@ namespace GalacticARM.Runtime
         public static ulong Start = 136436001;
         public static ulong End = ulong.MaxValue;
 
+        public static bool UseUnicorn;
+
+        public UnicornCpuThread ucf;
+
         public ExecutionContext Context;
         ExecutionContext* LoadedContext;
 
@@ -27,10 +32,12 @@ namespace GalacticARM.Runtime
             Context.ID = (ulong)Handle;
 
             Console.WriteLine($"Created Thread {Handle}");
+
+            ucf = new UnicornCpuThread(this);
         }
 
         static HashSet<int> Handles = new HashSet<int>();
-        static Dictionary<int, CpuThread> Threads = new Dictionary<int, CpuThread>();
+        public static Dictionary<int, CpuThread> Threads = new Dictionary<int, CpuThread>();
 
         public static CpuThread CreateThread()
         {
@@ -59,6 +66,13 @@ namespace GalacticARM.Runtime
 
             Context.MemoryPointer = (ulong)VirtualMemoryManager.PageMap;
 
+            if (false)
+            {
+                ucf.Execute(Entry);
+
+                return;
+            }
+
             fixed (ExecutionContext* context = &Context)
             {
                 Context.IsExecuting = 1;
@@ -68,31 +82,23 @@ namespace GalacticARM.Runtime
                 ulong Last = 0;
 
                 LoadedContext = context;
-
+                
                 while (true)
                 {
                     GuestFunction function = Translator.GetOrTranslateFunction(Entry);
 
-                    if (DebugComp)
-                    {
-                        //Console.WriteLine(function.IR);
-                        Console.WriteLine(function);
-                    }
-
                     Last = Entry;
 
                     Entry = function.Execute(context);
-
-                    if (Entry == 0)
-                    {
-                        Console.WriteLine(Last);
-                    }
 
                     if (Once || Context.IsExecuting == 0)
                     {
                         break;
                     }
                 }
+                
+
+                //ucf.Execute(Entry);
             }
 
             //Console.WriteLine($"Ended Thread {ThreadContext.ID}");
@@ -144,7 +150,17 @@ namespace GalacticARM.Runtime
 
         public void EndExecution()
         {
+            if (LoadedContext != null)
             LoadedContext->IsExecuting = 0;
+
+            if (ucf != null)
+            {
+                ucf.End();
+            }
         }
+
+
     }
+
+
 }

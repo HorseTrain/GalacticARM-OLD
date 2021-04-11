@@ -2,6 +2,7 @@
 using GalacticARM.Decoding;
 using GalacticARM.IntermediateRepresentation;
 using GalacticARM.Runtime;
+using GalacticARM.Runtime.Fallbacks;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -22,6 +23,8 @@ namespace GalacticARM.CodeGen.Translation
         public Dictionary<ulong, Operand> Blocks;
 
         public Operand ReturnLocal;
+
+        public ABasicBlock CurrentBlock;
 
         public TranslationContext()
         {
@@ -220,12 +223,36 @@ namespace GalacticARM.CodeGen.Translation
 
         public Operand ThrowUnknown()
         {
+            Console.WriteLine(CurrentOpCode);
+
             throw new NotImplementedException();
         }
 
         Operand GetReg(int Local) => new Operand() { Type = OperandType.Register, Data = (ulong)Local };
-        public int AllocateLocalIndex() => LocalIndex++;
-        public int AllocateVectorLocalIndex() => VectorLocalIndex++;
+
+        public unsafe int AllocateLocalIndex()
+        {
+            LocalIndex++;
+
+            if (LocalIndex >= sizeof(LocalStore) >> 3)
+            {
+                throw new Exception();
+            }
+
+            return LocalIndex;
+        }
+
+        public unsafe int AllocateVectorLocalIndex()
+        {
+            VectorLocalIndex++;
+
+            if (VectorLocalIndex >= sizeof(LocalStore) >> 4)
+            {
+                throw new Exception();
+            }
+
+            return VectorLocalIndex;
+        }
 
         public Operand AllocateLocal() => GetReg(AllocateLocalIndex());
 
@@ -373,15 +400,27 @@ namespace GalacticARM.CodeGen.Translation
 
         public void ConvertToFloat(Operand Des,Operand Src, int from, int to, bool singed)
         {
-            Operation o = AddInstruction(Instruction.Vector_ConvertToFloat, Des, Src, from, to, singed ? 1 : 0);
-
-            if (from == 2)
+            if (singed)
             {
-                o.Size = IntSize.Int32;
+                Operation o = AddInstruction(Instruction.Vector_ConvertToFloat, Des, Src, from, to, singed ? 1 : 0);
+
+                if (from == 2)
+                {
+                    o.Size = IntSize.Int32;
+                }
+                else
+                {
+                    o.Size = IntSize.Int64;
+                }
             }
             else
             {
-                o.Size = IntSize.Int64;
+                SetArgument(0, Des.Data);
+                SetArgument(1, Src.Data);
+                SetArgument(2, from);
+                SetArgument(3, to);
+
+                Call(nameof(FallbackFloat.UnsingedToFloat),ContextPointer());
             }
         }
 
@@ -403,7 +442,7 @@ namespace GalacticARM.CodeGen.Translation
             return des;
         }
 
-        public Operand GetVectorElement(Operand Vector, int Index, int Size)
+        public Operand GetVectorElement(Operand Vector, int Index, int Size, bool singed = false)
         {
             EnsureIsVector(Vector);
 
@@ -424,14 +463,24 @@ namespace GalacticARM.CodeGen.Translation
                 o.Size = IntSize.Int64;
             }
 
+            if (singed)
+            {
+                switch (Size)
+                {
+                    case 0: Out = SignExtend8(Out); break;
+                    case 1: Out = SignExtend16(Out); break;
+                    case 2: Out = SignExtend32(Out); break;
+                }
+            }
+
             return Out;
         }
 
-        public Operand VectorOperation(Operand d, Operand m, Instruction instruction, bool ClearTop)
+        public Operand VectorOperation(Operand n, Operand m, Instruction instruction, bool ClearTop = false)
         {
             Operand des = CreateVector();
 
-            AddInstruction(Instruction.Vector_Move,des,d);
+            AddInstruction(Instruction.Vector_Move,des,n);
 
             AddInstruction(instruction,des,m);
 
@@ -450,6 +499,28 @@ namespace GalacticARM.CodeGen.Translation
             AddInstruction(Instruction.Vector_Move, des, n);
 
             AddInstruction(Instruction.Vector_ScalarOperation,(int)instruction,des,m,size);
+
+            return des;
+        }
+
+        public Operand FloatVectorOperation(Operand n, Operand m, int size, Instruction instruction)
+        {
+            Operand des = CreateVector();
+
+            AddInstruction(Instruction.Vector_Move, des, n);
+
+            AddInstruction(Instruction.Vector_FloatVectorOperation,(int)instruction,des,m,size);
+
+            return des;
+        }
+
+        public Operand FloatVectorOperation(Operand n, int size, Instruction instruction)
+        {
+            Operand des = CreateVector();
+
+            AddInstruction(Instruction.Vector_Move, des, n);
+
+            AddInstruction(Instruction.Vector_FloatVectorOperation, (int)instruction,des,null, size);
 
             return des;
         }
@@ -482,11 +553,11 @@ namespace GalacticARM.CodeGen.Translation
             return Out;
         }
 
-        public Operand CreateVectorWith(Operand Imm, int size)
+        public Operand CreateVectorWith(Operand Source, int size)
         {
             Operand Out = CreateVector();
 
-            SetVectorElement(Out,Imm,0,size);
+            SetVectorElement(Out,Source,0,size);
 
             return Out;
         }
@@ -496,6 +567,20 @@ namespace GalacticARM.CodeGen.Translation
             Operand Out = CreateVector();
 
             AddInstruction(Instruction.Vector_Load,Out,Address,size);
+
+            return Out;
+        }
+
+        public Operand FillVectorWith(Operand Source, int size)
+        {
+            Operand Out = CreateVector();
+
+            int count = 16 >> size;
+
+            for (int i = 0; i < count; i++)
+            {
+                SetVectorElement(Out,Source,i,size);
+            }
 
             return Out;
         }

@@ -1,5 +1,6 @@
 ﻿using GalacticARM.Decoding;
 using GalacticARM.IntermediateRepresentation;
+using GalacticARM.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -228,6 +229,47 @@ namespace GalacticARM.CodeGen.Translation.aarch64
                     default: throw new NotImplementedException();
                 }
             }
+        }
+
+        static object Lock = new object();
+
+        public static void Ld1r(TranslationContext context)
+        {
+            Operand n = context.GetRegister("rn");
+            int rt = context.GetRaw("rt");
+            int size = context.GetRaw("size");
+            int q = context.GetRaw("q");
+
+            Operand load = context.Load64(GetPhysicalAddress(context,n));
+
+            Operand res = context.CreateVector();
+
+            for (int i = 0; i < 16 >> size; i++)
+            {
+                context.SetVectorElement(res,load,i,size);
+            }
+
+            if (q == 0)
+            {
+                context.SetVectorElement(res,0,1,3);
+            }
+
+            context.SetVector(rt,res);
+
+            return;
+            lock (Lock)
+            {
+                int start = context.CurrentBlock.Instructions.IndexOf(context.CurrentOpCode);
+
+                for (int i = start; i <start + 5; i++)
+                {
+                    Console.WriteLine(context.CurrentBlock.Instructions[i]);
+                }
+
+                Console.WriteLine();
+            }
+
+            //context.ThrowUnknown
         }
     }
 }

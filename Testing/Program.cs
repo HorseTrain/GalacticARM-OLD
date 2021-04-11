@@ -75,13 +75,24 @@ namespace Testing
 
             Random r = new Random();
 
-            for (uint i = 0; i < Size; i++)
-            {
-                byte e = (byte)r.Next(256);
+            bool mode = true;
 
-                ((byte*)uram.Buffer)[i] = e;
-                ((byte*)gram.Buffer)[i] = e;
-            }
+            if (mode)
+                for (uint i = 0; i < Size; i += 4)
+                {
+                    int e = -r.Next(1000);
+
+                    *((float*)((byte*)uram.Buffer + i)) = (float)e / 2.2f;
+                    *((float*)((byte*)gram.Buffer + i)) = (float)e / 2.2f;
+                }
+            else
+                for (uint i = 0; i < Size; i += 8)
+                {
+                    int e = r.Next(1000);
+
+                    *((double*)((byte*)uram.Buffer + i)) = -2.3d;
+                    *((double*)((byte*)gram.Buffer + i)) = -2.3d;
+                }
 
             for (int i = 0; i < buff.Length; i++)
             {
@@ -97,7 +108,7 @@ namespace Testing
             gengine.Context.NZCV = 0;
             uengine.NZCV = 0;
 
-            gengine.Execute(0,true);
+            gengine.Execute(0, true);
             uengine.RunUntil((ulong)ProgramSize);
 
             for (int i = 0; i < 32; i++)
@@ -180,29 +191,29 @@ namespace Testing
                     builder.AppendLine($"movz {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
                     builder.AppendLine($"movn {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
                     builder.AppendLine($"movk {reg(false, true)}, {r.Next(ushort.MaxValue)}, lsl #{r.Next(4) * 16}");
-                    
+
                     builder.AppendLine($"add {reg(true)}, {reg(true)}, {r.Next(4095)}");
                     builder.AppendLine($"sub {reg(true)}, {reg(true)}, {r.Next(4095)}, lsl #12");
                     builder.AppendLine($"add {reg(true)}, {reg(true)}, {r.Next(4095)}");
-                    
+
                     builder.AppendLine($"sub {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(32)}");
                     builder.AppendLine($"add {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(32)}");
                     builder.AppendLine($"add {reg(false)}, {reg(false)}, {reg(false)}, asr {r.Next(32)}");
-                    
+
                     builder.AppendLine($"adds {reg(false)}, {reg(true)}, {r.Next(4095)}, lsl #12");
                     builder.AppendLine($"subs {reg(false)}, {reg(true)}, {r.Next(4095)}");
                     builder.AppendLine($"subs {reg(false)}, {reg(true)}, {r.Next(4095)}, lsl #12");
                     builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");
                     builder.AppendLine($"subs {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(31)}");
-                    
+
                     builder.AppendLine($"sub {reg(true, true)},{reg(true, true)}, {reg(false, false)}, lsl 1");
                     builder.AppendLine($"sub {reg(true, true)},{reg(true, true)}, {reg(false, false)}, lsl 2");
                     builder.AppendLine($"add {reg(true, true)},{reg(true, true)}, {reg(false, false)}, lsl 3");
-                    
+
                     builder.AppendLine($"add {reg(true, true)}, {reg(true, true)}, {reg(false, false)}, sxtb");
                     builder.AppendLine($"add {reg(true, true)}, {reg(true, true)}, {reg(false, false)}, sxth");
-                    builder.AppendLine($"add {reg(true,true)}, {reg(true, true)}, {reg(false, false)}, sxtw");
-                    
+                    builder.AppendLine($"add {reg(true, true)}, {reg(true, true)}, {reg(false, false)}, sxtw");
+
                     builder.AppendLine($"csel {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"subs {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(32)}");
                     builder.AppendLine($"csinc {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
@@ -210,7 +221,7 @@ namespace Testing
                     builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, asr {r.Next(32)}");
                     builder.AppendLine($"csinv {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
-                       
+
                     builder.AppendLine($"csel {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"subs {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(32)}");
                     builder.AppendLine($"csinc {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
@@ -218,22 +229,22 @@ namespace Testing
                     builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, asr {r.Next(32)}");
                     builder.AppendLine($"csinv {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
-                    
+
                     builder.AppendLine($"subs {reg(false, true)},{reg(true, true)}, {reg(false, false)}, sxtb");
                     builder.AppendLine($"subs {reg(false, true)},{reg(true, true)}, {reg(false, false)}, sxth");
                     builder.AppendLine($"adds {reg(false, true)},{reg(true, true)}, {reg(false, false)}, sxtw");
-                    
+
                     builder.AppendLine($"csel {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"csinc {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"csinv {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
-                    
+
                     builder.AppendLine($"orr {reg(true)},  {reg(false)}, 0xffff");
                     builder.AppendLine($"and {reg(true)},  {reg(false)}, 0xffff");
                     builder.AppendLine($"eor {reg(true)},  {reg(false)}, 0xffff");
-                    
+
                     builder.AppendLine($"ands {reg(false)},  {reg(false)}, 0xffff");
-                    
+
                     builder.AppendLine($"and {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(31)}");
                     builder.AppendLine($"bic {reg(false)}, {reg(false)}, {reg(false)}, lsr {r.Next(31)}");
                     builder.AppendLine($"orr {reg(false)}, {reg(false)}, {reg(false)}, asr {r.Next(31)}");
@@ -259,7 +270,7 @@ namespace Testing
                     //
                     builder.AppendLine($"sbfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
                     builder.AppendLine($"ubfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
-                    builder.AppendLine($"bfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");                 
+                    builder.AppendLine($"bfm {reg(false)}, {reg(false)}, {r.Next(31)}, {r.Next(31)}");
                     builder.AppendLine($"udiv {reg(false)}, {reg(false)}, {reg(false)}");
                     //builder.AppendLine($"sdiv {reg(false)}, {reg(false)}, {reg(false)}");                  
                     builder.AppendLine($"LSLV {reg(false)}, {reg(false)}, {reg(false)}");
@@ -268,9 +279,9 @@ namespace Testing
                     builder.AppendLine($"RORV {reg(false)}, {reg(false)}, {reg(false)}");
                     builder.AppendLine($"madd {reg(false)}, {reg(false)},{reg(false)},{reg(false)}");
                     builder.AppendLine($"msub {reg(false)}, {reg(false)},{reg(false)},{reg(false)}");
-                    //builder.AppendLine($"dup v{r.Next(32)}.8b,{reg(false, false)}");
-                    //builder.AppendLine($"dup v{r.Next(32)}.16b,{reg(false, false)}");
-                    //builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");
+                    builder.AppendLine($"dup v{r.Next(32)}.8b,{reg(false, false)}");
+                    builder.AppendLine($"dup v{r.Next(32)}.16b,{reg(false, false)}");
+                    builder.AppendLine($"adds {reg(false)}, {reg(false)}, {reg(false)}, lsl {r.Next(31)}");
                     //
                     //builder.AppendLine($"fcsel s{r.Next(32)}, s{r.Next(32)}, s{r.Next(32)}, lo");
                     //
@@ -286,19 +297,19 @@ namespace Testing
                     ////
                     builder.AppendLine($"ins v{r.Next(32)}.d[{r.Next(2)}], {reg(false, true)}");
                     builder.AppendLine($"ins v{r.Next(32)}.s[{r.Next(4)}], {reg(false, false)}");
-                    //builder.AppendLine($"rev {reg(false, false)},{reg(false, false)}");
-                    //builder.AppendLine($"rev {reg(false, true)},{reg(false, true)}");
-                    //builder.AppendLine($"rev16 {reg(false, false)},{reg(false, false)}");
-                    //builder.AppendLine($"rev16 {reg(false, true)},{reg(false, true)}");
+                    builder.AppendLine($"rev {reg(false, false)},{reg(false, false)}");
+                    builder.AppendLine($"rev {reg(false, true)},{reg(false, true)}");
+                    builder.AppendLine($"rev16 {reg(false, false)},{reg(false, false)}");
+                    builder.AppendLine($"rev16 {reg(false, true)},{reg(false, true)}");
                     //
-                    //builder.AppendLine($"ccmp {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
-                    //builder.AppendLine($"ccmn {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
-                    //builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
+                    builder.AppendLine($"ccmp {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
+                    builder.AppendLine($"ccmn {reg(false)}, {reg(false)}, {r.Next(15)},{(Condition)r.Next(15)}");
+                    builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
                     builder.AppendLine($"rbit {reg(false, false)}, {reg(false, false)}");
                     builder.AppendLine($"rbit {reg(false)}, {reg(false)}");
                     builder.AppendLine($"clz {reg(false, false)}, {reg(false, false)}");
                     builder.AppendLine($"clz {reg(false)}, {reg(false)}");
-                    //builder.AppendLine($"ext v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b, #8");
+                    builder.AppendLine($"ext v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b, #8");
                     //
                     //builder.AppendLine($"mov d{r.Next(32)}, v3.d[{r.Next(2)}]");
                     //builder.AppendLine($"mov s{r.Next(32)}, v3.s[{r.Next(4)}]");
@@ -307,13 +318,13 @@ namespace Testing
 
                     //builder.AppendLine($"UMULH {reg(false,true)}, {reg(false, true)},{reg(false, true)}");
                     //builder.AppendLine($"fmov d{r.Next(32)}, {reg(false, true)}");
-                    builder.AppendLine($"orr v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
-                    builder.AppendLine($"orn v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
-                    builder.AppendLine($"and v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
-                    builder.AppendLine($"bic v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
-                    builder.AppendLine($"eor v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
-                    builder.AppendLine($"cnt v{r.Next(32)}.8b, v{r.Next(32)}.8b");
-                    builder.AppendLine($"uaddlv h{r.Next(32)}, v{r.Next(32)}.16b");
+                    //builder.AppendLine($"orr v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
+                    //builder.AppendLine($"orn v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
+                    //builder.AppendLine($"and v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
+                    //builder.AppendLine($"bic v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
+                    //builder.AppendLine($"eor v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
+                    //builder.AppendLine($"cnt v{r.Next(32)}.8b, v{r.Next(32)}.8b");
+                    //builder.AppendLine($"uaddlv h{r.Next(32)}, v{r.Next(32)}.16b");
                     //builder.AppendLine($"ucvtf s{r.Next(32)}, s{r.Next(32)}");
 
                     //builder.AppendLine($"ext v5.16b, v3.16b, v3.16b, #8");
@@ -333,8 +344,29 @@ namespace Testing
                     //builder.AppendLine($"ushl v{r.Next(32)}.4s, v{r.Next(32)}.4s, v{r.Next(32)}.4s");
                     //builder.AppendLine($"ushl v{r.Next(32)}.2d, v{r.Next(32)}.2d, v{r.Next(32)}.2d");
                     //builder.AppendLine($"sshll v{r.Next(32)}.2d, v{r.Next(32)}.2s, #{r.Next(5)}");
+                    //builder.AppendLine($"ushll v{r.Next(32)}.2d, v{r.Next(32)}.2s, #{r.Next(5)}");
                     //
-                    //builder.AppendLine($"shl v{r.Next(32)}.2d, v{r.Next(32)}.2d, #{r.Next(15)}");
+                    builder.AppendLine($"xtn v{r.Next(32)}.8b, v{r.Next(32)}.8h");
+                    builder.AppendLine($"xtn v{r.Next(32)}.4h, v{r.Next(32)}.4s");
+                    builder.AppendLine($"xtn v{r.Next(32)}.2s, v{r.Next(32)}.2d");
+
+                    builder.AppendLine($"xtn2 v{r.Next(32)}.16b, v{r.Next(32)}.8h");
+                    builder.AppendLine($"xtn2 v{r.Next(32)}.8h, v{r.Next(32)}.4s");
+                    builder.AppendLine($"xtn2 v{r.Next(32)}.4s, v{r.Next(32)}.2d");
+
+                    builder.AppendLine($"shl v{r.Next(32)}.2d, v{r.Next(32)}.2d, {r.Next(15)}");
+                    //builder.AppendLine($"sshr v{r.Next(32)}.2d, v{r.Next(32)}.2d, {r.Next(15)}");
+
+                    //builder.AppendLine($"zip1 v{r.Next(32)}.4s, v{r.Next(32)}.4s, v{r.Next(32)}.4s");
+                    //builder.AppendLine($"zip1 v{r.Next(32)}.2s, v{r.Next(32)}.2s, v{r.Next(32)}.2s");
+                    builder.AppendLine($"zip2 v{r.Next(32)}.4s, v{r.Next(32)}.4s, v{r.Next(32)}.4s");
+                    builder.AppendLine($"zip2 v{r.Next(32)}.2s, v{r.Next(32)}.2s, v{r.Next(32)}.2s");
+
+                    builder.AppendLine($"bsl v{r.Next(32)}.16b, v{r.Next(32)}.16b, v{r.Next(32)}.16b");
+                    builder.AppendLine($"bsl v{r.Next(32)}.8b, v{r.Next(32)}.8b, v{r.Next(32)}.8b");
+
+                    builder.AppendLine($"sshr v{r.Next(32)}.2d, v{r.Next(32)}.2d, {r.Next(32)}");
+
                     //
                     //builder.AppendLine($"mov s{r.Next(32)}, v{r.Next(32)}.s[{r.Next(4)}]");
                     //builder.AppendLine($"csneg {reg(false)}, {reg(false)},{reg(false)},{(Condition)r.Next(15)} ");
@@ -364,6 +396,8 @@ namespace Testing
                     //builder.AppendLine($"fmul s{r.Next(32)},s{r.Next(32)},s{r.Next(32)}");
                     //builder.AppendLine($"fdiv s{r.Next(32)},s{r.Next(32)},s{r.Next(32)}");
 
+                    //builder.AppendLine($"add v{r.Next(32)}.2d, v{r.Next(32)}.2d, v{r.Next(32)}.2d");
+
                 }
             }
 
@@ -371,16 +405,7 @@ namespace Testing
             {
                 builder.AppendLine(@$"
 
-mov x0, 300
-
-scvtf d0, x0
-
-mov x0, -400
-
-scvtf d1, x0
-
-fnmul d4, d0, d1
-
+movi v25.2s, #0x3f, lsl #24
 
 ");
             }
@@ -395,8 +420,8 @@ fnmul d4, d0, d1
 
             GuestFunction context = Translator.GetOrTranslateFunction(0);
 
-            Console.WriteLine(context.IR);
-            Console.WriteLine(context);
+            //Console.WriteLine(context.IR);
+            //Console.WriteLine(context);
 
             test.TestProgram();
         }
@@ -407,15 +432,15 @@ fnmul d4, d0, d1
 
             //Operand t1 = context.LoadVector(32,3);
 
-            context.SetRegister(0,100);
+            context.SetRegister(0, 100);
 
             context.SetVectorElement(Vec(1), ulong.MaxValue, 1, 3);
 
             Operand v = context.CreateVector();
 
-            context.SetVectorElement(v,300,0,0);
+            context.SetVectorElement(v, 300, 0, 0);
 
-            Operand d = context.GetVectorElement(v,3,0);
+            Operand d = context.GetVectorElement(v, 3, 0);
 
             context.Return(30);
 
@@ -435,6 +460,7 @@ fnmul d4, d0, d1
             CpuThread.DebugComp = true;
             CpuThread.InDebugMode = false;
             Translator.CompileByFunction = false;
+            EmitUniversal.UseUnicorn = false;
 
             Test();
 

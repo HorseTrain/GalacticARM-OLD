@@ -1,4 +1,5 @@
-﻿using GalacticARM.CodeGen.Translation.aarch64;
+﻿using GalacticARM.CodeGen.Translation;
+using GalacticARM.CodeGen.Translation.aarch64;
 using GalacticARM.IntermediateRepresentation;
 using GalacticARM.Runtime;
 using System;
@@ -192,6 +193,8 @@ namespace GalacticARM.Decoding
             Add(Emit64.Orr_ShiftedReg, "sf_1 enc_01 enc_01010 shift_2 n_1 rm_5 imm_6 rn_5 rd_5");
             Add(Emit64.Rbit, "sf_1 enc_101101011000000000000 rn_5 rd_5");
             Add(Emit64.RORV, "sf_1 enc_0011010110 rm_5 enc_001011 rn_5 rd_5");
+            Add(Emit64.Rev, "sf_1 enc_10110101100000000001 opc_1 rn_5 rd_5");
+            Add(Emit64.Rev16, "sf_1 enc_101101011000000000001 rn_5 rd_5");
             Add(Emit64.Sbfm, "sf_1 enc_00100110 n_1 immr_6 imms_6 rn_5 rd_5");
             Add(Emit64.Sdiv, "sf_1 enc_0011010110 rm_5 enc_000011 rn_5 rd_5");
             Add(Emit64.Smaddl, "enc_10011011001 rm_5 enc_0 ra_5 rn_5 rd_5");
@@ -219,14 +222,14 @@ namespace GalacticARM.Decoding
             Add(Emit64.Eor_Vector, "enc_0 q_1 enc_101110001 rm_5 enc_000111 rn_5 rd_5");
             Add(Emit64.Orn_Vector, "enc_0 q_1 enc_001110111 rm_5 enc_000111 rn_5 rd_5");
             Add(Emit64.Orr_Vector, "enc_0 q_1 enc_001110101 rm_5 enc_000111 rn_5 rd_5");
-
+            
             Add(Emit64.Dup_General, "enc_0 q_1 enc_001110000 imm_5 enc_000011 rn_5 rd_5");
-
+            
             Add(Emit64.Fmov_General, "sf_1 enc_0011110 ftype_2 enc_10 rmode_1 enc_11 opcode_1 enc_000000 rn_5 rd_5");
             Add(Emit64.Fmov_Imm, "enc_00011110 ftype_2 enc_1 imm_8 enc_10000000 rd_5");
             Add(Emit64.Ins_General, "enc_01001110000 imm_5 enc_000111 rn_5 rd_5");
             Add(Emit64.Movi, "enc_0 q_1 op_1 enc_0111100000 a_1 b_1 c_1 cmode_4 enc_01 d_1 e_1 f_1 g_1 h_1 rd_5");
-
+            
             Add(Emit64.vec_Ldp_Imm, "opc_2 enc_10110 type_2 enc_1 imm_7 rt2_5 rn|sp_5 rt_5");
             Add(Emit64.vec_Ldr_Imm, "size_2 enc_111101 opc_1 enc_1 imm_12 rn|sp_5 rt_5");
             Add(Emit64.vec_Ldr_ImmIndexed, "size_2 enc_111100 opc_1 enc_10 imm_9 type_2 rn|sp_5 rt_5");
@@ -235,48 +238,106 @@ namespace GalacticARM.Decoding
             Add(Emit64.vec_Str_Imm, "size_2 enc_111101 opc_1 enc_0 imm_12 rn|sp_5 rt_5");
             Add(Emit64.vec_Str_ImmIndexed, "size_2 enc_111100 opc_1 enc_00 imm_9 type_2 rn|sp_5 rt_5");
             Add(Emit64.vec_Str_Register, "size_2 enc_111100 opc_1 enc_01 rm_5 option_3 s_1 enc_10 rn|sp_5 rt_5");
-
+            Add(Emit64.Ld1r, "enc_0 q_1 enc_001101010000001100 size_2 rn|sp_5 rt_5");
+            
             Add(Emit64.Ucvtf_Scalar_Integer, "sf_1 enc_00111100 ftype_1 enc_100011000000 rn_5 rd_5");
             Add(Emit64.Scvtf_Scalar_Integer, "sf_1 enc_00111100 ftype_1 enc_100010000000 rn_5 rd_5");
-
+            
             Add(Emit64.Fcvtzs_Scalar_Fixed, "sf_1 enc_00111100 ftype_1 enc_011000 scale_6 rn_5 rd_5");
             Add(Emit64.Fcvtzu_Scalar_Fixed, "sf_1 enc_00111100 ftype_1 enc_011001 scale_6 rn_5 rd_5");
-
+            
             Add(Emit64.Fcvtzs_Scalar_Integer, "sf_1 enc_00111100 ftype_1 enc_111000000000 rn_5 rd_5");
             Add(Emit64.Fcvtzu_Scalar_Integer, "sf_1 enc_00111100 ftype_1 enc_111001000000 rn_5 rd_5");
-
+            
             Add(Emit64.Ucvtf_Vector_Integer, "enc_011111100 sz_1 enc_100001110110 rn_5 rd_5");
             Add(Emit64.Scvtf_Vector_Integer, "enc_010111100 sz_1 enc_100001110110 rn_5 rd_5");
-
+            
             Add(Emit64.Fcvtps_Scalar, "sf_1 enc_00111100 ftype_1 enc_101000000000 rn_5 rd_5");
             Add(Emit64.Fcvtms_Scalar, "sf_1 enc_00111100 ftype_1 enc_110000000000 rn_5 rd_5");
-
+            
             Add(Emit64.Fcvt, "enc_000111100 ftype_1 enc_100010 opc_1 enc_10000 rn_5 rd_5");
-
+            
             Add(Emit64.Fdiv_Scalar, "enc_00011110 ftype_2 enc_1 rm_5 enc_000110 rn_5 rd_5");
             Add(Emit64.Fadd_Scalar, "enc_00011110 ftype_2 enc_1 rm_5 enc_001010 rn_5 rd_5");
             Add(Emit64.Fsub_Scalar, "enc_00011110 ftype_2 enc_1 rm_5 enc_001110 rn_5 rd_5");
             Add(Emit64.Fmul_Scalar, "enc_00011110 ftype_2 enc_1 rm_5 enc_000010 rn_5 rd_5");
             Add(Emit64.Fnmul_Scalar, "enc_00011110 ftype_2 enc_1 rm_5 enc_100010 rn_5 rd_5");
-
+            
             Add(Emit64.Fneg, "enc_00011110 ftype_2 enc_100001010000 rn_5 rd_5");
             Add(Emit64.Fabs, "enc_00011110 ftype_2 enc_100000110000 rn_5 rd_5");
             Add(Emit64.Fsqrt, "enc_00011110 ftype_2 enc_100001110000 rn_5 rd_5");
-
+            
             Add(Emit64.Fcmp, "enc_00011110 ftype_2 enc_1 rm_5 enc_001000 rn_5 enc_0 opc_1 enc_000");
             Add(Emit64.Fccmp, "enc_00011110 ftype_2 enc_1 rm_5 cond_4 enc_01 rn_5 enc_0 nzcv_4");
-
+            
             Add(Emit64.Cnt, "enc_0 q_1 enc_00111000100000010110 rn_5 rd_5");
             Add(Emit64.Uaddlv, "enc_0 q_1 enc_101110 size_2 enc_110000001110 rn_5 rd_5");
-
+            
             Add(Emit64.Fmax, "enc_00011110 ftype_2 enc_1 rm_5 enc_010010 rn_5 rd_5");
             Add(Emit64.Fmax, "enc_00011110 ftype_2 enc_1 rm_5 enc_011010 rn_5 rd_5"); //FMAXNM 
             Add(Emit64.Fmin, "enc_00011110 ftype_2 enc_1 rm_5 enc_010110 rn_5 rd_5");
             Add(Emit64.Fmin, "enc_00011110 ftype_2 enc_1 rm_5 enc_011110 rn_5 rd_5"); //FMINNM 
-
+            
             Add(Emit64.Fcsel, "enc_00011110 ftype_2 enc_1 rm_5 cond_4 enc_11 rn_5 rd_5");
 
+            Add(Emit64.Sshll, "enc_0 q_1 enc_0011110 immh_4 immb_3 enc_101001 rn_5 rd_5");
+            Add(Emit64.Ushll, "enc_0 q_1 enc_1011110 immh_4 immb_3 enc_101001 rn_5 rd_5");
+            Add(Emit64.Xtn, "enc_0 q_1 enc_001110 size_2 enc_100001001010 rn_5 rd_5");
+            
+            Add(Emit64.Fmul_Vector, "enc_0 q_1 enc_1011100 sz_1 enc_1 rm_5 enc_110111 rn_5 rd_5");
+            Add(Emit64.Fadd_Vector, "enc_0 q_1 enc_0011100 sz_1 enc_1 rm_5 enc_110101 rn_5 rd_5");
+            Add(Emit64.Fsub_Vector, "enc_0 q_1 enc_0011101 sz_1 enc_1 rm_5 enc_110101 rn_5 rd_5");
+            Add(Emit64.Fdiv_Vector, "enc_0 q_1 enc_1011100 sz_1 enc_1 rm_5 enc_111111 rn_5 rd_5");
+
+            Add(Emit64.Fcmeq_VectorRegister, "enc_0 q_1 enc_0011100 sz_1 enc_1 rm_5 enc_111001 rn_5 rd_5");
+            Add(Emit64.Fcmgt_VectorRegister, "enc_0 q_1 enc_1011101 sz_1 enc_1 rm_5 enc_111001 rn_5 rd_5");
+
+            Add(Emit64.Fcmeq_VectorZero, "enc_0 q_1 enc_0011101 sz_1 enc_100000110110 rn_5 rd_5");
+            Add(Emit64.Fcmge_VectorZero, "enc_0 q_1 enc_1011101 sz_1 enc_100000110010 rn_5 rd_5");
+
+            Add(Emit64.Faddp_Vector, "enc_0 q_1 enc_1011100 sz_1 enc_1 rm_5 enc_110101 rn_5 rd_5");
+            
+            Add(Emit64.Fmul_VectorElement, "enc_010111111 sz_1 l_1 rm_5 enc_1001 h_1 enc_0 rn_5 rd_5");
+
+            Add(Emit64.Fmul_VectorVectorElement, "enc_0 q_1 enc_0011111 sz_1 l_1 rm_5 enc_1001 h_1 enc_0 rn_5 rd_5");
+            Add(Emit64.Fmla_VectorVectorElement, "enc_0 q_1 enc_0011111 sz_1 l_1 rm_5 enc_0001 h_1 enc_0 rn_5 rd_5");
+            Add(Emit64.Fmls_VectorVectorElement, "enc_0 q_1 enc_0011111 sz_1 l_1 rm_5 enc_0101 h_1 enc_0 rn_5 rd_5");
+            
+            Add(Emit64.Frsqrte_Vector, "enc_0 q_1 enc_1011101 sz_1 enc_100001110110 rn_5 rd_5");
+            
+            Add(Emit64.Ins_Element, "enc_01101110000 imm5_5 enc_0 imm4_4 enc_1 rn_5 rd_5");
+
+            Add(Emit64.Fmla_Vector, "enc_0 q_1 enc_0011100 sz_1 enc_1 rm_5 enc_110011 rn_5 rd_5");
+            Add(Emit64.Fmls_Vector, "enc_0 q_1 enc_0011101 sz_1 enc_1 rm_5 enc_110011 rn_5 rd_5");
+
+            Add(Emit64.Frsqrts_Vector, "enc_0 q_1 enc_0011101 sz_1 enc_1 rm_5 enc_111111 rn_5 rd_5");
+
+            Add(Emit64.Neg_Vector, "enc_0 q_1 enc_101110 size_2 enc_100000101110 rn_5 rd_5");
+
+            Add(Emit64.Ext_Vector, "enc_0 q_1 enc_101110000 rm_5 enc_0 imm_4 enc_0 rn_5 rd_5");
+
+            Add(Emit64.Dup_ElementScalar, "enc_01011110000 imm_5 enc_000001 rn_5 rd_5");
+            Add(Emit64.Dup_ElementVector, "enc_0 q_1 enc_001110000 imm_5 enc_000001 rn_5 rd_5");
+
+            Add(Emit64.Shl, "enc_0 q_1 enc_0011110 immh_4 immb_3 enc_010101 rn_5 rd_5");
+            Add(Emit64.Sshr, "enc_0 q_1 enc_0011110 immh_4 immb_3 enc_000001 rn_5 rd_5");
+
+            Add(Emit64.Zip, "enc_0 q_1 enc_001110 size_2 enc_0 rm_5 enc_0 op_1 enc_1110 rn_5 rd_5");
+
+            Add(Emit64.Bsl, "enc_0 q_1 enc_101110011 rm_5 enc_000111 rn_5 rd_5");
+
+            Add(Emit64.Umov_ToGeneral, "enc_0 q_1 enc_001110000 imm_5 enc_001111 rn_5 rd_5");
+
+            Add(Emit64.Frintp_Scalar, "enc_00011110 ftype_2 enc_100100110000 rn_5 rd_5");
+            Add(Emit64.Frintm_Scalar, "enc_00011110 ftype_2 enc_100101010000 rn_5 rd_5");
+
+            Add(Emit64.Scvtf_Vector, "enc_0 q_1 enc_0011100 sz_1 enc_100001110110 rn_5 rd_5");
+            Add(Emit64.Ucvtf_Vector, "enc_0 q_1 enc_1011100 sz_1 enc_100001110110 rn_5 rd_5");
+
             #endregion
+
+
+            Add(EmitUniversal.EmitUnicornFB, "imm_32");
         }
 
         public static (OpCodeTable, int) GetTable(ulong Address)

@@ -31,6 +31,14 @@ namespace GalacticARM.Runtime
         public ulong Size       { get; set; }
     }
 
+    public unsafe struct MemoryMap
+    {
+        public ulong VirtualAddress;
+        public ulong Size;
+
+        public void* PhysicalAddress;
+    }
+
     public static unsafe class VirtualMemoryManager
     {
         public const int PageBit = 12;
@@ -41,6 +49,8 @@ namespace GalacticARM.Runtime
         public static ulong PageMapCount;
 
         public static PageInfo* PageMap;
+
+        public static List<MemoryMap> Maps { get; set; }
 
         static unsafe VirtualMemoryManager()
         {
@@ -54,6 +64,8 @@ namespace GalacticARM.Runtime
             {
                 PageMap = (PageInfo*)t;
             }
+
+            Maps = new List<MemoryMap>();
         }
 
         public static void* ReqeustPhysicalAddress(ulong VirtualAddress, MemoryAccess RequestType = MemoryAccess.All)
@@ -89,11 +101,28 @@ namespace GalacticARM.Runtime
 
                 Offset += PageSize;
             }
+
+            lock (Maps)
+            {
+                Maps.Add(new MemoryMap() { VirtualAddress = VirtualAddress, Size = Size, PhysicalAddress = PhysicalAddress });
+            }
         }
 
         public static T ReadObject<T>(ulong VirtualAddress) where T: unmanaged
         {
             return *(T*)ReqeustPhysicalAddress(VirtualAddress,MemoryAccess.Read);
+        }
+
+        public static T[] ReadObjects<T>(ulong VirtualAddress, int size) where T : unmanaged
+        {
+            T[] Out = new T[size];
+
+            for (int i = 0; i < size; i++)
+            {
+                Out[i] = ReadObject<T>(VirtualAddress + (ulong)i);
+            }
+
+            return Out;
         }
 
         public static void WriteObject<T>(ulong VirtualAddress, T data) where T: unmanaged

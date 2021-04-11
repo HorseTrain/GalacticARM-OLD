@@ -130,6 +130,54 @@ namespace GalacticARM.Runtime.Fallbacks
             context->SetX(rd,des);
         }
 
+        public static ulong FloorCel(ulong src, ulong size, ulong mode)
+        {            
+            if (size == 3)
+            {
+                double d = ConvertUlongToDouble(src);
+
+                if (mode == 1)
+                {
+                    d = Math.Floor(d);
+                }
+                else if (mode == 0)
+                {
+                    d = Math.Ceiling(d);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+
+                src = ConvertDoubleToUlong(d);
+            }
+            else if (size == 2)
+            {
+                float d = ConvertUintToFloat((uint)src);
+
+                if (mode == 1)
+                {
+                    d = MathF.Floor(d);
+                }
+                else if (mode == 0)
+                {
+                    d = MathF.Ceiling(d);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+
+                src = ConvertFloatToUint(d);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
+            return src;
+        }
+
         public static int SatF32ToS32(float value)
         {
             if (float.IsNaN(value)) return 0;
@@ -351,6 +399,37 @@ namespace GalacticARM.Runtime.Fallbacks
             else
             {
                 throw new NotImplementedException();
+            }
+        }
+
+        public static void UnsingedToFloat(ulong _context)
+        {
+            ExecutionContext* context = (ExecutionContext*)_context;
+
+            int des = (int)context->Arg0;
+            int src = (int)context->Arg1;
+            int from = (int)context->Arg2;
+            int to = (int)context->Arg3;
+
+            ulong srcc = ((ulong*)context)[src];
+            Vector128<float>* vdes = (Vector128<float>*)((byte*)context + ExecutionContext.VectorOffset);
+
+            if (from == 2)
+            {
+                srcc &= uint.MaxValue;
+            }
+
+            if (to == 2)
+            {
+                float dess = (float)srcc;
+
+                vdes[des] = new Vector128<float>().WithElement(0,dess);
+            }
+            else if (to == 3)
+            {
+                double dess = (double)srcc;
+
+                vdes[des] = new Vector128<double>().WithElement(0, dess).AsSingle();
             }
         }
     }

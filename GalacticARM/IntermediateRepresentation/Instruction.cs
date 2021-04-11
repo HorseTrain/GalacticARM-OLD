@@ -48,6 +48,8 @@ namespace GalacticARM.IntermediateRepresentation
         Subtract,
         Xor,
 
+        HardPC,
+
         Vector_SetVectorElement,
         Vector_ClearVector,
         Vector_Move,
@@ -60,7 +62,11 @@ namespace GalacticARM.IntermediateRepresentation
         Vector_Not,
         Vector_ConvertToFloat,
         Vector_ConvertToInt, //Singed!!
+
         Vector_ScalarOperation,
+        Vector_FloatVectorOperation,
+        Vector_FloatVectorOperationSingle,
+
         Vector_ScalarUnaryOperation,
 
         Vector_Neg,
@@ -70,5 +76,11 @@ namespace GalacticARM.IntermediateRepresentation
         Vector_Fmul,
         Vector_Fdiv,
         Vector_Fsub,
+        Vector_Fsqrt,
+        Vector_Frsqrt,
+
+        Vector_Fceq,
+        Vector_Fcge,
+        Vector_Fcgt
     }
 }
