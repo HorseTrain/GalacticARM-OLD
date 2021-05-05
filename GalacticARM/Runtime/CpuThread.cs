@@ -1,8 +1,10 @@
 ﻿using GalacticARM.CodeGen.Translation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnicornNET;
@@ -13,26 +15,41 @@ namespace GalacticARM.Runtime
 
     public unsafe class CpuThread
     {
-        public static bool DebugComp { get; set; }
+        internal UnicornCpuThread ucf;
 
-        public static bool InDebugMode = false;
+        public ref ExecutionContext Context => ref *((ExecutionContext*)NativeContext);
 
-        public static ulong Start = 136436001;
-        public static ulong End = ulong.MaxValue;
+        IntPtr NativeContext;
 
-        public static bool UseUnicorn;
+        static CpuThread()
+        {
+            Counter = new Stopwatch();
 
-        public UnicornCpuThread ucf;
-
-        public ExecutionContext Context;
-        ExecutionContext* LoadedContext;
+            Counter.Start();
+        }
 
         internal CpuThread(int Handle)
         {
+            InitContext(Handle);
+
+            InitUnicorn();
+        }
+
+        void InitContext(int Handle)
+        {
+            NativeContext = Marshal.AllocHGlobal(sizeof(ExecutionContext));
+
+            Context = new ExecutionContext();
+
             Context.ID = (ulong)Handle;
 
-            Console.WriteLine($"Created Thread {Handle}");
+            Context.FunctionTablePointer = DelegateCache.FunctionTablePointer;
 
+            Console.WriteLine($"Created Thread {Handle}");
+        }
+
+        void InitUnicorn()
+        {
             ucf = new UnicornCpuThread(this);
         }
 
@@ -43,65 +60,57 @@ namespace GalacticARM.Runtime
         {
             int handle = 0;
 
-            while (true)
+            lock (Handles)
             {
-                if (!Handles.Contains(handle))
+                while (true)
                 {
-                    Handles.Add(handle);
+                    if (!Handles.Contains(handle))
+                    {
+                        Handles.Add(handle);
 
-                    Threads.Add(handle, new CpuThread(handle));
+                        Threads.Add(handle, new CpuThread(handle));
 
-                    return Threads[handle];
+                        return Threads[handle];
+                    }
+
+                    handle++;
                 }
-
-                handle++;
             }
         }
 
-        public static ulong pp;
-
-        public void Execute(ulong Entry, bool Once = false)
+        public ulong Execute(ulong Entry, bool Once = false)
         {
-            //Console.WriteLine($"Started Thread {ThreadContext.ID}");
-
             Context.MemoryPointer = (ulong)VirtualMemoryManager.PageMap;
 
             if (false)
             {
                 ucf.Execute(Entry);
 
-                return;
+                return ucf.Engine.PC;
             }
 
-            fixed (ExecutionContext* context = &Context)
+            Context.IsExecuting = 1;
+
+            Context.MyPointer = (ulong)NativeContext;
+
+            while (true)
             {
-                Context.IsExecuting = 1;
+                Entry = ExecuteSingle(Entry);
 
-                context->MyPointer = (ulong)context;
-
-                ulong Last = 0;
-
-                LoadedContext = context;
-                
-                while (true)
+                if (Once || Context.IsExecuting == 0)
                 {
-                    GuestFunction function = Translator.GetOrTranslateFunction(Entry);
-
-                    Last = Entry;
-
-                    Entry = function.Execute(context);
-
-                    if (Once || Context.IsExecuting == 0)
-                    {
-                        break;
-                    }
+                    return Entry;
                 }
-                
-
-                //ucf.Execute(Entry);
             }
+        }
 
-            //Console.WriteLine($"Ended Thread {ThreadContext.ID}");
+        public ulong ExecuteSingle(ulong Entry)
+        {
+            GuestFunction function = Translator.GetOrTranslateFunction(Entry);
+
+            Context.MyPointer = (ulong)NativeContext;
+
+            return function.Execute((ExecutionContext*)Context.MyPointer);
         }
 
         public SVC svc;
@@ -113,45 +122,13 @@ namespace GalacticARM.Runtime
             Threads[(int)context->ID].svc((int)id);
         }
 
-        public static void DebugStep(ulong ContextPointer, ulong Address)
-        {
-            ExecutionContext* context = (ExecutionContext*)ContextPointer;
+        public static Stopwatch Counter;
 
-            Threads[(int)context->ID].DebugStep(Address);
-
-            context->ExecutedInstructions++;
-        }
-
-        StreamWriter writer;//= new StreamWriter(@"D:\Debug\GSteps.txt");
-
-        void DebugStep(ulong Address)
-        {
-            //136436001
-
-            if (Context.ExecutedInstructions >= Start && Context.ExecutedInstructions < End)
-            {
-                writer.WriteLine($"Dat: {Context.ExecutedInstructions} {GalacticARM.Runtime.VirtualMemoryManager.GetOpHex(Address)}");
-
-                for (int i = 0; i < 32; i++)
-                {
-                    writer.WriteLine(i + " " + Context.GetX(i));
-                }
-            }
-
-            //157245156
-
-            if (Context.ExecutedInstructions == End)
-            {
-                writer.Close();
-
-                Console.WriteLine("Done");
-            }
-        }
+        public static ulong GetCntpctEl0() => (ulong)(Counter.ElapsedTicks * (1.0 / Stopwatch.Frequency)) * 19200000;
 
         public void EndExecution()
         {
-            if (LoadedContext != null)
-            LoadedContext->IsExecuting = 0;
+            Context.IsExecuting = 0;
 
             if (ucf != null)
             {
@@ -159,8 +136,9 @@ namespace GalacticARM.Runtime
             }
         }
 
-
+        ~CpuThread()
+        {
+            Marshal.FreeHGlobal(NativeContext);
+        }
     }
-
-
 }

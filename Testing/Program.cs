@@ -182,8 +182,6 @@ namespace Testing
                 }
             }
 
-            CpuThread.DebugComp = false;
-
             void Random()
             {
                 for (int i = 0; i < 50; i++)
@@ -457,20 +455,18 @@ movi v25.2s, #0x3f, lsl #24
 
         static void Main(string[] args)
         {
-            CpuThread.DebugComp = true;
-            CpuThread.InDebugMode = false;
             Translator.CompileByFunction = false;
             EmitUniversal.UseUnicorn = false;
 
-            Test();
+            //Test();
 
             //TestComp();
 
-            /*
+            
             foreach (var e in Enum.GetValues(typeof(Instruction)))
             {
-                Console.WriteLine($"public Operand {e}(Operand Arg0, Operand Arg1) => MoveWithOperation(Instruction.{e}, Arg0, Arg1);");
-            }*/
+                Console.WriteLine($"case Instruction::{e}: Out += \"{e}\"; break;");
+            }
         }
     }
 }

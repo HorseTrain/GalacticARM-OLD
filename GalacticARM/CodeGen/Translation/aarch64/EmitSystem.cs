@@ -1,5 +1,6 @@
 ﻿using GalacticARM.IntermediateRepresentation;
 using GalacticARM.Runtime;
+using GalacticARM.Runtime.Fallbacks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,7 +70,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
                 case 0b11_011_1101_0000_010: d = context.GetRegRaw(nameof(ExecutionContext.tpidr)); break;
                 case 0b11_011_1101_0000_011: d = context.GetRegRaw(nameof(ExecutionContext.tpidrro_el0)); break;
                 //case 0b11_011_1110_0000_000: d = context.GetFieldRaw(nameof(ThreadContext.c)); break;
-                case 0b11_011_1110_0000_001: d = 0; break;
+                case 0b11_011_1110_0000_001: d = context.Call(nameof(FallbackOther.GetCntpctEl0)); break;
                 default: d = context.ThrowUnknown(); break;
             }
 

@@ -30,6 +30,11 @@ namespace GalacticARM.CodeGen.Translation
 
     public static class DelegateCache
     {
+        static ulong[] FunctionTable;
+        static List<string> FunctionNames;
+
+        public static ulong FunctionTablePointer;
+
         static Dictionary<string, Delegate> Methoddic = new Dictionary<string, Delegate>();
 
         static Delegate[] Methods = new Delegate[]
@@ -47,19 +52,36 @@ namespace GalacticARM.CodeGen.Translation
             new _Void___Ulong(FallbackFloat.UnsingedToFloat),
             new _Void___Ulong(FallbackMemory.Clrex_fb),
             new _Void___Ulong_Ulong(CpuThread.CallSVC),
-            new _Void___Ulong_Ulong(CpuThread.DebugStep),
             new _Void___Ulong_Ulong(FallbackMemory.SetExclusive_fb),
             new _Void___Ulong_Ulong_Ulong(Fallbackbits.Cnt),
             new _Void___Ulong_Ulong_Ulong_Ulong(FallbackFloat.Fsqrt),
             new _Ulong___Ulong_Ulong(Fallbackbits.Rev),
             new _Ulong___Ulong_Ulong_Ulong(FallbackFloat.FloorCel),
+            new _Ulong__(FallbackOther.GetCntpctEl0)
         };
 
-        static DelegateCache()
+        static unsafe DelegateCache()
         {
+            FunctionTable = new ulong[Methods.Length];
+            FunctionNames = new List<string>();
+
+            int i = 0;
+
             foreach (Delegate d in Methods)
             {
                 Methoddic.Add(d.Method.Name,d);
+
+                FunctionTable[i] = (ulong)Marshal.GetFunctionPointerForDelegate(d);
+                FunctionNames.Add(d.Method.Name);
+
+                ++i;
+            }
+
+            GCHandle.Alloc(FunctionTable,GCHandleType.Pinned);
+
+            fixed (ulong* v = FunctionTable)
+            {
+                FunctionTablePointer = (ulong)v;
             }
         }
 
@@ -73,6 +95,11 @@ namespace GalacticARM.CodeGen.Translation
             }
 
             throw new Exception();
+        }
+
+        public static int GetFunctionIndex(string Name)
+        {
+            return FunctionNames.IndexOf(Name);
         }
     }
 }

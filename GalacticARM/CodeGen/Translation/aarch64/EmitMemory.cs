@@ -12,7 +12,9 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 {
     public static partial class Emit64
     {
-        static unsafe Operand GetPhysicalAddress(TranslationContext context, Operand VirtualAddress)
+        public static bool EnableTracking = false;
+
+        static unsafe Operand GetPhysicalAddress(TranslationContext context, Operand VirtualAddress, bool IsLoad)
         {
             Operand Index = context.ShiftRight(VirtualAddress,VirtualMemoryManager.PageBit);
             Operand Offset = context.And(VirtualAddress,VirtualMemoryManager.PageMask);
@@ -25,6 +27,24 @@ namespace GalacticARM.CodeGen.Translation.aarch64
             Operand PageLoopUp = context.Add(context.GetRegRaw(nameof(ExecutionContext.MemoryPointer)),context.ShiftLeft(Index,4));
 
             Operand pa = context.Load64(PageLoopUp);
+
+            if (EnableTracking) //This seems to be very slow :(
+            {
+                Operand PageDataPointer = context.Add(PageLoopUp, 8);
+
+                Operand PageData = context.Load64(PageDataPointer);
+
+                if (IsLoad)
+                {
+                    PageData = context.Or(PageData, 1);
+                }
+                else
+                {
+                    PageData = context.Or(PageData, 1 << 1);
+                }
+
+                context.Store64(PageDataPointer, PageData);
+            }
 
             return context.Add(pa,Offset);
         }
@@ -79,7 +99,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
                 context.ThrowUnknown();
             }
 
-            Address = GetPhysicalAddress(context, Address);
+            Address = GetPhysicalAddress(context, Address,IsLoad);
 
             if (IsLoad)
             {
@@ -103,7 +123,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
             //Console.WriteLine(Convert.ToString(context.CurrentOpCode.RawOpCode,2));
 
-            Address = context.CreateLocal(GetPhysicalAddress(context, Address));
+            Address = context.CreateLocal(GetPhysicalAddress(context, Address,IsLoad));
 
             if (IsLoad)
             {
@@ -131,7 +151,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
             Address = context.Add(Address, m);
 
-            Address = context.CreateLocal(GetPhysicalAddress(context, Address));
+            Address = context.CreateLocal(GetPhysicalAddress(context, Address,IsLoad));
 
             if (IsLoad)
             {
@@ -176,7 +196,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
                 context.ThrowUnknown();
             }
 
-            Address = context.CreateLocal(GetPhysicalAddress(context, Address));
+            Address = context.CreateLocal(GetPhysicalAddress(context, Address,IsLoad));
 
             if (IsLoad)
             {
@@ -237,11 +257,15 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
         public static void Mem_Exclusive(TranslationContext context, bool IsLoad, bool Test)
         {
+            //context.ReturnNil();
+
+            //;
+
             int size = context.GetRaw("size");
 
             Operand Address = context.GetRegister("rn");
 
-            Address = GetPhysicalAddress(context, Address);
+            Address = GetPhysicalAddress(context, Address,IsLoad);
 
             if (IsLoad)
             {
@@ -286,7 +310,9 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
         public static void Clrex(TranslationContext context)
         {
-            context.Call(nameof(FallbackMemory.Clrex_fb), context.ContextPointer());
+            //context.Call(nameof(FallbackMemory.Clrex_fb), context.ContextPointer());
+
+            context.SetRegRaw(nameof(ExecutionContext.ExclusiveAddress),ulong.MaxValue);
 
             context.AdvancePC();
         }

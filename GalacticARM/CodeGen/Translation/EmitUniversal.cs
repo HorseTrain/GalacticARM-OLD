@@ -39,6 +39,10 @@ namespace GalacticARM.CodeGen.Translation
         {
             if (UseUnicorn)
             {
+                //context.ReturnNil();
+
+                //return;
+
                 Console.WriteLine($"Instruction: {context.CurrentOpCode} Resorting to Unicorn.");
 
                 Operand Return = context.Call(nameof(UnicornCpuThread.FallbackStepUni), context.ContextPointer(), context.CurrentOpCode.Address);

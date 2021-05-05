@@ -6,7 +6,7 @@ namespace GalacticARM.Runtime
 {
     public unsafe struct LocalStore
     {
-        public fixed ulong Buffer[1024];
+        public fixed ulong Buffer[2048 * 100];
     }
 
     public unsafe struct ExecutionContext
@@ -62,6 +62,7 @@ namespace GalacticARM.Runtime
         public ulong CallArgument;
         public ulong DebugHook;
         public ulong ID;
+
         public ulong IsExecuting;
         public ulong MemoryPointer;
         public ulong dczid_el0;
@@ -70,8 +71,13 @@ namespace GalacticARM.Runtime
         public ulong tpidr;
         public ulong tpidrro_el0;
         public ulong MyPointer;
+
         public ulong ExecutedInstructions;
         public ulong Return;
+        public ulong ExclusiveAddress;
+        public ulong ExclusiveValue;
+
+        public ulong FunctionTablePointer;
 
         LocalStore Locals;
 
@@ -301,6 +307,13 @@ namespace GalacticARM.Runtime
             }
 
             throw new NotImplementedException();
+        }
+
+        public void SetQ(int i, void* dat)
+        {
+            Vector128<float> v = *(Vector128<float>*)dat;
+
+            SetQ(i,v);
         }
 
         static int OffsetOF(string Name) => (int)Marshal.OffsetOf<ExecutionContext>(Name);

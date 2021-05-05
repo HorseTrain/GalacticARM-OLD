@@ -15,6 +15,8 @@ namespace GalacticARM.Runtime.X86
         static byte* Base;
         const int Size = 800 * 1024 * 1024;
 
+        public static object Lock = new object();
+
         static JitCache()
         {
             Base = (byte*)VirtualAlloc(null, Size, 0x1000, 4);

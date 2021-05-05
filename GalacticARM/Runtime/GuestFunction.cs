@@ -1,8 +1,10 @@
 ﻿using GalacticARM.CodeGen.Translation;
 using GalacticARM.IntermediateRepresentation;
+using GalacticARM.Runtime.X86;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,13 +14,24 @@ namespace GalacticARM.Runtime
 
     public unsafe class GuestFunction
     {
-        public OperationBlock IR    { get; set; }
         public byte[] Buffer        { get; set; }
         public _func Func           { get; set; }
         public ulong Ptr            { get; set; }
 
         public int TimesCalled              { get; set; }
         public Optimizations optimizations  { get; set; }
+
+        public GuestFunction(byte[] Buffer)
+        {
+            this.Buffer = Buffer;
+
+            lock (JitCache.Lock)
+            {
+                JitCache.GetNativeFunction(this);
+            }
+
+            Ptr = (ulong)Marshal.GetFunctionPointerForDelegate(Func);
+        }
 
         public ulong Execute(ExecutionContext* context)
         {

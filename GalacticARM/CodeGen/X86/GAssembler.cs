@@ -309,18 +309,7 @@ namespace GalacticARM.CodeGen.X86
 
             Buffer.BlockCopy(stream.GetBuffer(), 0, Out, 0, Out.Length);
 
-            GuestFunction Out_F = new GuestFunction();
-
-            Out_F.Buffer = Out;
-
-            lock (JitLock)
-            {
-                JitCache.GetNativeFunction(Out_F);
-            }
-
-            Out_F.IR = SourceBlock;
-
-            Out_F.Ptr = (ulong)Marshal.GetFunctionPointerForDelegate(Out_F.Func);
+            GuestFunction Out_F = new GuestFunction(Out);
 
             return Out_F;
         }
@@ -461,24 +450,36 @@ namespace GalacticARM.CodeGen.X86
             VectorAllocator.UnlockAllRegisters();
         }
 
+        dynamic GetRegPtr(int Guest)
+        {
+            //c.mov(r14, (Guest * 8));
+
+            return __[r15 + (Guest * 8)];
+        }
+
+        dynamic GetVecPtr(int Guest)
+        {
+            return __[r15 + (ExecutionContext.VectorOffset + (Guest * 16))];
+        }
+
         void LoadReg(GuestRegister reg)
         {
-            c.mov(_64[reg.Host], __[r15 + (reg.Guest * 8)]);
+            c.mov(_64[reg.Host], GetRegPtr(reg.Guest));
         }
 
         void StoreReg(GuestRegister reg)
         {
-            c.mov(__[r15 + (reg.Guest * 8)], _64[reg.Host]);
+            c.mov(GetRegPtr(reg.Guest), _64[reg.Host]);
         }
 
         void LoadVector(GuestRegister reg)
         {
-            c.vmovupd(_Xmm[reg.Host], __[r15 + (ExecutionContext.VectorOffset + (reg.Guest * 16))]);
+            c.vmovupd(_Xmm[reg.Host], GetVecPtr(reg.Guest));
         }
 
         void StoreVector(GuestRegister reg)
         {
-            c.vmovupd(__[r15 + (ExecutionContext.VectorOffset + (reg.Guest * 16))], _Xmm[reg.Host]);
+            c.vmovupd(GetVecPtr(reg.Guest), _Xmm[reg.Host]);
         }
 
         #endregion
@@ -579,13 +580,13 @@ namespace GalacticARM.CodeGen.X86
             c.push(r15);
             c.sub(rsp, offset);
 
-            c.mov(r14, __[r15 + (8 * (int)Func.Data)]);
+            c.mov(r14, GetRegPtr((int)Func.Data));
 
             for (int i = 1; i < CurrentOperation.Operands.Length; i++)
             {
                 int a = i - 1;
 
-                dynamic ra = __[r15 + ((int)CurrentOperation.Operands[i].Data * 8)]; //GetArgument(i);
+                dynamic ra = GetRegPtr((int)CurrentOperation.Operands[i].Data);//GetArgument(i);
 
                 if (a == 0)
                 {

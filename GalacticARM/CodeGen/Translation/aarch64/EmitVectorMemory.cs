@@ -42,7 +42,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
             Address = context.Add(Address,m);
 
-            Address = GetPhysicalAddress(context,Address);
+            Address = GetPhysicalAddress(context,Address,IsLoad);
 
             if (IsLoad)
             {
@@ -91,7 +91,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
                 context.ThrowUnknown();
             }
 
-            Address = GetPhysicalAddress(context,Address);
+            Address = GetPhysicalAddress(context,Address,IsLoad);
 
             if (IsLoad)
             {
@@ -119,7 +119,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
             int rt = context.GetRaw("rt");
 
-            Address = GetPhysicalAddress(context,Address);
+            Address = GetPhysicalAddress(context,Address,IsLoad);
 
             if (IsLoad)
             {
@@ -167,7 +167,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
                 context.ThrowUnknown();
             }
 
-            Address = GetPhysicalAddress(context,Address);
+            Address = GetPhysicalAddress(context,Address,IsLoad);
 
             if (IsLoad)
             {
@@ -240,7 +240,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
             int size = context.GetRaw("size");
             int q = context.GetRaw("q");
 
-            Operand load = context.Load64(GetPhysicalAddress(context,n));
+            Operand load = context.Load64(GetPhysicalAddress(context,n,true));
 
             Operand res = context.CreateVector();
 
@@ -255,21 +255,6 @@ namespace GalacticARM.CodeGen.Translation.aarch64
             }
 
             context.SetVector(rt,res);
-
-            return;
-            lock (Lock)
-            {
-                int start = context.CurrentBlock.Instructions.IndexOf(context.CurrentOpCode);
-
-                for (int i = start; i <start + 5; i++)
-                {
-                    Console.WriteLine(context.CurrentBlock.Instructions[i]);
-                }
-
-                Console.WriteLine();
-            }
-
-            //context.ThrowUnknown
         }
     }
 }

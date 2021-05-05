@@ -15,13 +15,15 @@ namespace GalacticARM.Runtime
         All = Read | Write | Execute
     }
 
-    //[StructLayout(LayoutKind.Sequential, Pack = 1)]
     public unsafe struct PageInfo
     {
         public ulong PhysicalAddress;
-        public MemoryAccess Access;
-        public byte Type;
-        public bool Mapped;
+        public ulong Meta; 
+
+        public void Reset()
+        {
+            Meta = 0;
+        }
     }
 
     public struct RegionInfo
@@ -75,11 +77,6 @@ namespace GalacticARM.Runtime
 
             PageInfo Info = PageMap[Index];
 
-            if (!Info.Mapped || !Info.Access.HasFlag(RequestType))
-            {
-                throw new AccessViolationException();
-            }
-
             return (byte*)Info.PhysicalAddress + Offset;
         }
 
@@ -95,9 +92,9 @@ namespace GalacticARM.Runtime
                 ulong Index = Bottom >> PageBit;
 
                 PageMap[Index].PhysicalAddress = Offset;
-                PageMap[Index].Access = Access;
-                PageMap[Index].Type = Type;
-                PageMap[Index].Mapped = true;
+                //PageMap[Index].Access = Access;
+                //PageMap[Index].Type = Type;
+                //PageMap[Index].Mapped = true;
 
                 Offset += PageSize;
             }

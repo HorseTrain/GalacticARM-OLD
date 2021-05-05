@@ -5,6 +5,7 @@ using GalacticARM.Runtime;
 using GalacticARM.Runtime.Fallbacks;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,17 +17,58 @@ namespace GalacticARM.CodeGen.Translation
     {
         public static bool CompileByFunction { get; set; } = true;
 
+        public static bool EnableInstructionCache { get; set; } = false;
+
+        public static string ContextName;
+        const string CachePath = @"Cache\";
+
+        static string TCachePath => CachePath + ContextName + "\\";
+
         public static Dictionary<ulong,GuestFunction> Functions     { get; set; }
         static Dictionary<ulong,ABasicBlock> BasicBlocks            { get; set; }
 
-        static Translator()
+        static bool IsOpen = false;
+
+        static void InitTranslator()
         {
+            if (IsOpen)
+                return;
+
+            IsOpen = true;
+
             Functions = new Dictionary<ulong, GuestFunction>();
             BasicBlocks = new Dictionary<ulong, ABasicBlock>();
+
+            if (EnableInstructionCache)
+            {
+                if (!Directory.Exists(TCachePath))
+                {
+                    Directory.CreateDirectory(TCachePath);
+                }
+
+                string[] Files = Directory.GetFiles(TCachePath);
+
+                foreach (string file in Files)
+                {
+                    ulong Address = ulong.Parse(Path.GetFileName(file));
+
+                    GuestFunction function = new GuestFunction(File.ReadAllBytes(file));
+
+                    Functions.Add(Address,function);
+
+                    Console.WriteLine(function);
+
+                    Console.WriteLine(@$"Loaded Function {Path.GetFileName(file)}");
+                }
+
+                Console.WriteLine("Loaded Jit Cache!!");
+            }
         }
 
         public static GuestFunction GetOrTranslateFunction(ulong Address, Optimizations optimizations = Optimizations.None)
         {
+            InitTranslator();
+
             GuestFunction Out;
 
             if (Functions.TryGetValue(Address, out Out))
@@ -41,9 +83,15 @@ namespace GalacticARM.CodeGen.Translation
                 if (!Functions.ContainsKey(Address))
 
                 Functions.Add(Address,Out);
-            }
 
-            Out.optimizations = optimizations;
+                if (EnableInstructionCache)
+                {
+                    string path = @$"{TCachePath}{Address}";
+
+                    if (!File.Exists(path))
+                        File.WriteAllBytes(path, Out.Buffer);
+                }
+            }
 
             return Out;
         }
@@ -74,6 +122,8 @@ namespace GalacticARM.CodeGen.Translation
             TranslationContext context = new TranslationContext();
 
             TranslateFunction(context,Address,optimizations);
+
+            Console.WriteLine(context);
 
             return context.CompileFunction();
         }
@@ -106,22 +156,6 @@ namespace GalacticARM.CodeGen.Translation
 
                 //Other
                 context.CurrentSize = IntSize.Int64;
-
-                if (CpuThread.InDebugMode)
-                {
-                    context.Call(nameof(CpuThread.DebugStep),context.ContextPointer(),opCode.Address);
-
-                    EmitUniversal.EmitIf(context,
-                        
-                        context.Ceq(context.GetRegRaw(nameof(ExecutionContext.Return)),0),
-                        
-                        delegate()
-                        {
-                            context.Return(opCode.Address + 4);
-                        }
-                        
-                        );
-                }
             }
 
             Operand CurrentReturn = context.GetRegRaw(nameof(ExecutionContext.Return));

@@ -287,10 +287,12 @@ namespace GalacticARM.CodeGen.Translation
         public Operand SignExtend16(Operand Arg0) => MoveWithOperation(Instruction.SignExtend16, Arg0);
         public Operand SignExtend32(Operand Arg0) => MoveWithOperation(Instruction.SignExtend32, Arg0);
         public Operand SignExtend8(Operand Arg0) => MoveWithOperation(Instruction.SignExtend8, Arg0);
-        public Operand Store16(Operand Arg0, Operand Arg1) => MoveWithOperation(Instruction.Store16, Arg0, Arg1);
-        public Operand Store32(Operand Arg0, Operand Arg1) => MoveWithOperation(Instruction.Store32, Arg0, Arg1);
-        public Operand Store64(Operand Arg0, Operand Arg1) => MoveWithOperation(Instruction.Store64, Arg0, Arg1);
-        public Operand Store8(Operand Arg0, Operand Arg1) => MoveWithOperation(Instruction.Store8, Arg0, Arg1);
+
+        public void Store16(Operand Arg0, Operand Arg1) => AddInstruction(Instruction.Store16, Arg0, Arg1);
+        public void Store32(Operand Arg0, Operand Arg1) => AddInstruction(Instruction.Store32, Arg0, Arg1);
+        public void Store64(Operand Arg0, Operand Arg1) => AddInstruction(Instruction.Store64, Arg0, Arg1);
+        public void Store8(Operand Arg0, Operand Arg1) => AddInstruction(Instruction.Store8, Arg0, Arg1);
+
         public Operand Subtract(Operand Arg0, Operand Arg1) => MoveWithOperation(Instruction.Subtract, Arg0, Arg1);
         public Operand Xor(Operand Arg0, Operand Arg1) => MoveWithOperation(Instruction.Xor, Arg0, Arg1);
         public Operand Clz(Operand d) => Clt(d,0); //And(ShiftRight(d, BitCount - 1), 1);
@@ -321,9 +323,36 @@ namespace GalacticARM.CodeGen.Translation
 
         public Operand InvertBool(Operand test) => Xor(test,1);
 
+        public Operand GetFunctionPointer(string Name)
+        {
+            //return Const(DelegateCache.GetFunctionPointer(Name));
+
+            bool reset = false;
+
+            if (CurrentSize == IntSize.Int32)
+            {
+                reset = true;
+
+                CurrentSize = IntSize.Int64;
+            }
+
+            Operand Pointer = GetRegRaw(nameof(ExecutionContext.FunctionTablePointer));
+
+            AddInstruction(Instruction.Add, Pointer,DelegateCache.GetFunctionIndex(Name) << 3);
+
+            AddInstruction(Instruction.Load64,Pointer,Pointer);
+
+            if (reset)
+            {
+                CurrentSize = IntSize.Int32;
+            }
+
+            return Pointer;
+        }
+
         public Operand Call(string Name,params Operand[] operands)
         {
-            Operand FunctionPointer = Const(DelegateCache.GetFunctionPointer(Name));
+            Operand FunctionPointer = GetFunctionPointer(Name);
 
             Operand[] args = new Operand[operands.Length + 1];
 
@@ -590,6 +619,15 @@ namespace GalacticARM.CodeGen.Translation
             EnsureIsVector(Vector);
 
             AddInstruction(Instruction.Vector_Store,Address,Vector,size);
+        }
+
+        public void ReturnNil()
+        {
+            SetRegRaw(nameof(ExecutionContext.IsExecuting), 0);
+
+            SetArgument(0, ulong.MaxValue);
+
+            Return(CurrentOpCode.Address);
         }
     }
 }

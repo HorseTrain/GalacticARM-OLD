@@ -68,7 +68,7 @@ namespace GalacticARM.CodeGen.Translation.aarch64
 
         public static void CallFloatFallBack(TranslationContext context,string Name)
         {
-            context.SetRegRaw(nameof(ExecutionContext.FunctionPointer),DelegateCache.GetFunctionPointer(Name));
+            context.SetRegRaw(nameof(ExecutionContext.FunctionPointer),context.GetFunctionPointer(Name));
 
             context.CallRaw(context.GetRegRaw(nameof(ExecutionContext.FunctionPointer)));
         }
